@@ -3,7 +3,7 @@ import { useUser } from "@clerk/nextjs";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-const BACKEND = "https://apexsim-backend.vercel.app/api";
+const BACKEND = "https://seal-app-xdojw.ondigitalocean.app/api";
 
 // After Clerk resolves the Facebook / Apple OAuth, this page bridges the
 // Clerk session to the app's own backend JWT (stored in localStorage).

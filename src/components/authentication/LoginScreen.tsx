@@ -63,7 +63,7 @@ export default function LoginView() {
   // Google — server-side code flow via backend (uses hardcoded client_id + secret)
   const handleGoogleLogin = () => {
     setSocialLoading("google");
-    window.location.href = "https://apexsim-backend.vercel.app/api/auth/google";
+    window.location.href = "https://seal-app-xdojw.ondigitalocean.app/api/auth/google";
   };
 
   // Facebook — via Clerk OAuth (no Facebook app or SDK needed)

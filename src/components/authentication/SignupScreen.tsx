@@ -421,7 +421,7 @@ export default function SignupView() {
   // Google — server-side code flow via backend
   const handleGoogleSignup = () => {
     setSocialLoading("google");
-    window.location.href = "https://apexsim-backend.vercel.app/api/auth/google";
+    window.location.href = "https://seal-app-xdojw.ondigitalocean.app/api/auth/google";
   };
 
   // Facebook — via Clerk OAuth (no Facebook app or SDK needed)

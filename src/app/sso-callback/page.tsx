@@ -3,7 +3,7 @@ import { useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AuthenticateWithRedirectCallback } from "@clerk/nextjs";
 
-const BACKEND = "https://apexsim-backend.vercel.app/api";
+const BACKEND = "https://seal-app-xdojw.ondigitalocean.app/api";
 
 const Spinner = () => (
   <div className="min-h-screen bg-[#181818] flex items-center justify-center">
