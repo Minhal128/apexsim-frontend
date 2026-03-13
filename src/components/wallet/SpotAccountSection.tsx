@@ -1,0 +1,127 @@
+import React, { useEffect, useState } from "react";
+import { LuEye, LuSearch } from "react-icons/lu";
+import { FaCaretDown } from "react-icons/fa";
+import { PiCaretUpDownFill } from "react-icons/pi";
+import { apiRequest } from "@/lib/api";
+
+const coinIcons: Record<string, string> = {
+    BTC: "/images/bitcoin.png",
+    ETH: "/images/etherium.png",
+    USDT: "/images/tcoin.png",
+    SOL: "/images/stype.png",
+    AVAX: "/images/red.png",
+    XRP: "/images/doublev.png",
+};
+
+export default function FundsOverview() {
+    const [walletData, setWalletData] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        fetchWallet();
+    }, []);
+
+    const fetchWallet = async () => {
+        try {
+            const data = await apiRequest("/wallet");
+            setWalletData(data);
+        } catch (err) {
+            console.error("Failed to fetch wallet:", err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const getBalance = (symbol: string) => {
+        return walletData?.balances?.find((b: any) => b.asset === symbol)?.amount || 0;
+    };
+
+    const assets = [
+        { symbol: "BTC", name: "Bitcoin" },
+        { symbol: "ETH", name: "Ethereum" },
+        { symbol: "USDT", name: "Tether" },
+        { symbol: "SOL", name: "Solana" },
+        { symbol: "AVAX", name: "Avalanche" },
+    ];
+
+    const totalBtc = getBalance('BTC');
+
+    return (
+        <div className="min-h-screen bg-[#1D1D1D] text-white font-manrope px-4 sm:px-6 md:px-8">
+            <div className="flex-1 w-full">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-6 mb-10 pt-6">
+                    <div>
+                        <div className="flex items-center font-semibold gap-2 text-gray-500 text-sm mb-1">
+                            <span>Valuation</span>
+                            <LuEye className="cursor-pointer text-white" size={14} />
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <h1 className="text-2xl sm:text-3xl md:text-4xl font-semibold tracking-tight">
+                                {loading ? "Loading..." : `${totalBtc.toFixed(6)} BTC`}
+                            </h1>
+                            <span className="text-gray-400 p-1 bg-[#252525] rounded-sm cursor-pointer">
+                                <FaCaretDown size={12} />
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className="sm:text-right">
+                        <div className="flex items-center sm:justify-end gap-2 mb-1">
+                            <span className="text-gray-400 font-semibold text-xs border-b border-gray-600 border-dotted">Profit and Loss</span>
+                            <div className="bg-[#262628] px-2 py-0.5 rounded flex items-center gap-1 text-[11px] text-gray-300">Today <FaCaretDown size={10} /></div>
+                        </div>
+                        <h2 className="text-xl sm:text-2xl font-semibold">$0.00</h2>
+                    </div>
+                </div>
+
+                <div className="mt-8">
+                    <div className="flex md:flex-row flex-col sm:items-center justify-between gap-4 mb-4 py-3 border-y border-white/5">
+                        <h3 className="text-lg font-semibold">My Assets</h3>
+                        <div className="relative w-full sm:w-64">
+                            <LuSearch size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                            <input placeholder="Search..." className="w-full bg-[#222222] pl-9 pr-3 py-3 rounded-sm text-sm outline-none" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div className="overflow-x-auto max-w-6xl">
+                <table className="w-full min-w-225 text-sm">
+                    <thead>
+                        <tr className="text-gray-400">
+                            <th className="py-3 text-left">Coin</th>
+                            <th className="py-3 text-left">Total</th>
+                            <th className="py-3 text-left">Available</th>
+                            <th className="py-3 text-right">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {assets.map((coin) => {
+                            const balance = getBalance(coin.symbol);
+                            return (
+                                <tr key={coin.symbol} className="border-b border-white/5 hover:bg-white/2 transition">
+                                    <td className="py-4 flex items-center gap-3">
+                                        <img src={coinIcons[coin.symbol] || "/images/bitcoin.png"} alt={coin.symbol} className="w-7 h-7" />
+                                        <div>
+                                            <div className="font-semibold">{coin.symbol}</div>
+                                            <div className="text-gray-500 text-xs">{coin.name}</div>
+                                        </div>
+                                    </td>
+                                    <td className="py-4">
+                                        <div>{balance.toFixed(coin.symbol === 'BTC' ? 6 : 2)} {coin.symbol}</div>
+                                    </td>
+                                    <td className="py-4">{balance.toFixed(coin.symbol === 'BTC' ? 6 : 2)}</td>
+                                    <td className="py-4 text-right">
+                                        <button className="text-[#00B595] hover:underline mr-4">Deposit</button>
+                                        <button className="text-[#00B595] hover:underline">Withdraw</button>
+                                    </td>
+                                </tr>
+                            );
+                        })}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    );
+}
+

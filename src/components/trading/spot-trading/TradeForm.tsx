@@ -1,0 +1,364 @@
+"use client";
+import React, { useState, useEffect } from "react";
+import { FaPlusCircle, FaBitcoin, FaCaretDown } from "react-icons/fa";
+import { RiSettingsFill } from "react-icons/ri";
+import SettingsModal from "./TradingSetting";
+import { apiRequest } from "@/lib/api";
+import { useToast } from "@/components/ToastContext";
+import { useRouter } from "next/navigation";
+
+type OrderType = "Limit" | "Market" | "Stop limit";
+
+interface TradeFormProps {
+  symbol?: string;
+}
+
+export default function TradeForm({ symbol = "BTC/USDT" }: TradeFormProps) {
+  const toast = useToast();
+  const router = useRouter();
+  const [isSettingOpen, setIsSettingOpen] = useState(false);
+  const [side, setSide] = useState<"buy" | "sell">("buy");
+  const [orderType, setOrderType] = useState<OrderType>("Limit");
+  const [price, setPrice] = useState("0.00");
+  const [amount, setAmount] = useState("");
+  const [total, setTotal] = useState("");
+  const [usdtBalance, setUsdtBalance] = useState("0");
+  const [btcBalance, setBtcBalance] = useState("0");
+  const [loading, setLoading] = useState(false);
+
+  const fetchBalances = async () => {
+    try {
+      const data = await apiRequest("/wallet");
+      const assetBase = symbol.split('/')[0];
+      const usdt = data.balances.find((b: any) => b.asset === "USDT")?.amount || 0;
+      const asset = data.balances.find((b: any) => b.asset === assetBase)?.amount || 0;
+      setUsdtBalance(usdt.toFixed(2));
+      setBtcBalance(asset.toFixed(6));
+    } catch (err) {
+      console.error("Failed to fetch balances:", err);
+    }
+  };
+
+  const fetchMarketPrice = async () => {
+    try {
+      const prices = await apiRequest("/market/prices");
+      const assetBase = symbol.split('/')[0];
+      const currentPrice = prices[assetBase]?.usd || 0;
+      if (currentPrice > 0) {
+        setPrice(currentPrice.toString());
+      }
+    } catch (err) {
+      console.error("Failed to fetch market price:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchBalances();
+    fetchMarketPrice();
+  }, [symbol]);
+
+  // Sync total when price or amount changes
+  useEffect(() => {
+    if (orderType === "Limit") {
+      const p = parseFloat(price) || 0;
+      const a = parseFloat(amount) || 0;
+      if (p > 0 && a > 0) {
+        setTotal((p * a).toFixed(2));
+      } else {
+        setTotal("");
+      }
+    }
+  }, [price, amount, orderType]);
+
+  const handleAmountChange = (val: string) => {
+    setAmount(val);
+    if (orderType === "Market") {
+      const p = parseFloat(price) || 0;
+      const a = parseFloat(val) || 0;
+      if (p > 0 && a > 0) {
+        setTotal((p * a).toFixed(2));
+      } else {
+        setTotal("");
+      }
+    }
+  };
+
+  const handleTotalChange = (val: string) => {
+    setTotal(val);
+    const p = parseFloat(price) || 0;
+    const t = parseFloat(val) || 0;
+    if (p > 0 && t > 0) {
+      setAmount((t / p).toFixed(6));
+    } else {
+      setAmount("");
+    }
+  };
+
+  const handleTrade = async () => {
+    if (!amount || parseFloat(amount) <= 0) return;
+    setLoading(true);
+    try {
+      await apiRequest("/trading/order", {
+        method: "POST",
+        body: JSON.stringify({
+          symbol: symbol,
+          type: side,
+          marketType: "spot",
+          price: parseFloat(price),
+          amount: parseFloat(amount),
+          orderType: orderType.toLowerCase(),
+        }),
+      });
+      // Refresh balances after trade
+      fetchBalances();
+      setAmount("");
+      toast.addToast(`${side.toUpperCase()} order placed successfully!`, "success");
+    } catch (err: any) {
+      toast.addToast(err.message || "Trade failed", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
+  const handleSwitchToFutures = () => {
+    router.push('/dashboard/futures-trade');
+  };
+
+  return (
+    <div className="w-full md:w-[320px] bg-[#181818] p-3 flex flex-col gap-4 h-auto select-none font-sans">
+      {/* Trading Type Tabs */}
+      <div className="flex gap-4 text-[13px] font-semibold border-b border-white/5 items-center">
+        <div className="relative pb-2 cursor-pointer">
+          <span className="text-white">Spot</span>
+          <div className="absolute bottom-0 left-0 w-full h-0.5 bg-[#00B595]" />
+        </div>
+        <span className="text-gray-500 hover:text-gray-300 cursor-pointer" onClick={handleSwitchToFutures}>
+          Futures
+        </span>
+        {/* Display selected asset icon and name */}
+        <div className="ml-auto flex items-center gap-2">
+          <img
+            src={`https://assets.coingecko.com/coins/images/${symbol.split('/')[0] === 'BTC' ? '1' : symbol.split('/')[0] === 'ETH' ? '279' : symbol.split('/')[0] === 'USDT' ? '325' : symbol.split('/')[0] === 'SOL' ? '4128' : '1'}/small/${symbol.split('/')[0].toLowerCase()}.png`}
+            alt={symbol.split('/')[0]}
+            className="w-4 h-4 rounded-full object-contain"
+            onError={(e) => {
+              e.currentTarget.src = 'https://assets.coingecko.com/coins/images/1/small/bitcoin.png';
+            }}
+          />
+          <span className="text-xs text-gray-400">{symbol}</span>
+        </div>
+      </div>
+
+      <div className="absolute md:top-28 right-10 text-white">
+        <RiSettingsFill
+          onClick={() => setIsSettingOpen(true)}
+          size={22}
+          className="cursor-pointer text-gray-50 hover:text-white"
+        />
+      </div>
+
+      <div className="flex bg-[#1e2023] rounded-md">
+        <button
+          onClick={() => setSide("buy")}
+          className={`flex-1 py-2.5 text-md  rounded cursor-pointer transition-all ${side === "buy" ? "bg-white text-black" : "text-gray-400"
+            }`}
+        >
+          Buy {symbol.split('/')[0]}
+        </button>
+        <button
+          onClick={() => setSide("sell")}
+          className={`flex-1 py-2.5 text-md  rounded cursor-pointer transition-all ${side === "sell" ? "bg-[#323539] text-white" : "text-gray-400"
+            }`}
+        >
+          Sell {symbol.split('/')[0]}
+        </button>
+      </div>
+
+      <div className="space-y-3.5">
+        <div className="flex gap-4 text-[13px] font-semibold uppercase tracking-wider">
+          {(["Limit", "Market", "Stop limit"] as OrderType[]).map((t) => (
+            <span
+              key={t}
+              onClick={() => setOrderType(t)}
+              className={`cursor-pointer transition-colors ${orderType === t
+                ? "text-white "
+                : "text-gray-500 hover:text-gray-300"
+                }`}
+            >
+              {t}
+            </span>
+          ))}
+        </div>
+
+        <div className="flex gap-2 text-[12px] text-gray-500 items-center">
+          <span>
+            Avbl{" "}
+            <span className="text-gray-300 font-medium">
+              {side === "buy" ? `${usdtBalance} USDT` : `${btcBalance} BTC`}
+            </span>
+          </span>
+          <FaPlusCircle
+            className="text-[#3b82f6] cursor-pointer hover:text-blue-400"
+            size={11}
+          />
+        </div>
+
+        <div className="flex flex-col gap-3">
+          {orderType === "Limit" && (
+            <>
+              {/* Price Field */}
+              <div className="relative group">
+                <input
+                  placeholder="Price"
+                  type="text"
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
+                  className="w-full bg-[#181B1F] border border-white/10 rounded-md p-2.5  text-white text-sm outline-none focus:border-[#3b82f6]"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[16px] text-gray-300">
+                  USDT {price}
+                </span>
+              </div>
+              {/* Amount Field */}
+              <div className="relative group">
+                <input
+                  placeholder="Amount"
+                  type="number"
+                  value={amount}
+                  onChange={(e) => handleAmountChange(e.target.value)}
+                  className="w-full bg-[#181B1F] border border-white/10 rounded-md p-2.5 text-white text-sm outline-none focus:border-[#3b82f6]"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[16px] text-gray-300">
+                  {symbol.split('/')[0]}
+                </span>
+              </div>
+            </>
+          )}
+
+          {orderType === "Market" && (
+            <div className="flex flex-col gap-3">
+              <div className="relative group">
+                <input
+                  placeholder="Price"
+                  type="text"
+                  value={`Market Price (~${price})`}
+                  readOnly
+                  className="w-full bg-[#181B1F]/50 border border-white/5 rounded-md p-2.5 text-gray-500 text-sm outline-none cursor-not-allowed"
+                />
+              </div>
+              <div className="relative group">
+                <input
+                  placeholder="Amount"
+                  type="number"
+                  value={amount}
+                  onChange={(e) => handleAmountChange(e.target.value)}
+                  className="w-full bg-[#181B1F] border border-white/10 rounded-md p-2.5 text-white text-sm outline-none focus:border-[#3b82f6]"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[16px] text-gray-300">
+                  {symbol.split('/')[0]}
+                </span>
+              </div>
+            </div>
+          )}
+
+          {orderType === "Stop limit" && (
+            <div className="h-22 flex items-center justify-center border border-dashed border-white/10 rounded-md">
+              <span className="text-gray-600 text-[10px]">
+                No parameters for Stop Limit
+              </span>
+            </div>
+          )}
+        </div>
+
+        <div className="relative h-6 flex items-center mt-2 px-1 cursor-pointer">
+          <div className="absolute w-full h-0.5 bg-[#2d3036] rounded" />
+          <div className="absolute w-full flex justify-between z-10">
+            {[0, 1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className={`w-3.75 h-3.75 rotate-45 rounded-sm border-3 ${i === 0
+                  ? "bg-[#141517] border-[#34C759]"
+                  : "bg-[#141517] border-[#2d3036]"
+                  }`}
+              />
+            ))}
+          </div>
+        </div>
+
+        <div className="relative">
+          <input
+            type="number"
+            value={total}
+            onChange={(e) => handleTotalChange(e.target.value)}
+            className="w-full bg-[#181B1F] border border-white/5 rounded-md p-2.5 text-sm text-white outline-none focus:border-[#3b82f6]"
+            placeholder="Total (USDT)"
+          />
+        </div>
+
+        <div className="flex flex-col gap-2 pt-1">
+          <div className="flex items-center gap-2 cursor-pointer group">
+            <input
+              type="radio"
+              className="w-3.5 h-3.5 rounded-full border border-gray-600 flex items-center justify-center group-hover:border-gray-400"
+            />
+            <span className="text-[17px] text-gray-50 font-medium">
+              {orderType === "Market" ? "Max slippage" : "Advanced options"}
+            </span>
+          </div>
+          <div className="flex gap-2 text-[17px] mt-1">
+            <span className="text-gray-500">Max Buy</span>
+            <span className="text-white">0 BTC</span>
+          </div>
+        </div>
+
+        <button
+          onClick={handleTrade}
+          disabled={loading}
+          className={`w-full py-3 rounded-md text-[16px] font-bold cursor-pointer transition-all active:scale-[0.98] ${side === "buy"
+            ? "bg-linear-to-r from-[#0052ff] to-[#0070ff] text-white shadow-[0_4px_12px_rgba(0,82,255,0.3)]"
+            : "bg-[#ef5350] text-white"
+            } ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
+        >
+          {loading ? "Processing..." : `${side.toUpperCase()} ${symbol.split('/')[0]}`}
+        </button>
+
+        <div className="flex gap-2.5 pt-1 ">
+          <button
+            onClick={() => router.push('/dashboard/deposit')}
+            className="flex-1 py-2 bg-[#24262b] rounded-md text-[15px]  text-gray-300 hover:bg-[#2d3036] cursor-pointer transition-colors"
+          >
+            Deposit
+          </button>
+          <button
+            onClick={() => router.push('/dashboard/wallet')}
+            className="flex-1 py-2 bg-[#24262b] rounded-md text-[15px] text-gray-300 hover:bg-[#2d3036] cursor-pointer transition-colors"
+          >
+            Transfer
+          </button>
+        </div>
+
+        {orderType === "Market" && (
+          <div className="pt-2 flex flex-col gap-1 border-t border-white/5 mt-2">
+            <div className="flex justify-between text-[11px]">
+              <span className="text-gray-500 border-b border-dotted border-gray-700">
+                USDT Balance
+              </span>
+              <span className="text-white font-medium">{usdtBalance} USDT</span>
+            </div>
+            <div className="flex justify-between text-[11px]">
+              <span className="text-gray-500 border-b border-dotted border-gray-700">
+                BTC Balance
+              </span>
+              <span className="text-white font-medium">{btcBalance} BTC</span>
+            </div>
+          </div>
+        )}
+      </div>
+      <SettingsModal
+        isOpen={isSettingOpen}
+        onClose={() => setIsSettingOpen(false)}
+      />
+    </div>
+  );
+}
