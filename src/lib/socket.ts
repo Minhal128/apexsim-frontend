@@ -6,13 +6,12 @@ export const initializeSocket = () => {
   if (socket) return socket;
 
   // Connect to the backend server
-  socket = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:5001', {
+  socket = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'https://seal-app-xdojw.ondigitalocean.app', {
     reconnection: true,
     reconnectionDelay: 1000,
     reconnectionDelayMax: 5000,
     reconnectionAttempts: 5,
-    transports: ['polling'], // Force polling only for Vercel serverless compatibility 
-    upgrade: false, // Disable upgrade to websocket as Vercel does not support it
+    transports: ['websocket', 'polling'], // Allow WebSocket and fallback to polling
   });
 
   socket.on('connect', () => {
