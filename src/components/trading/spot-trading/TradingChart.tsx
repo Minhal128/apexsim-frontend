@@ -29,6 +29,13 @@ interface TradingChartProps {
   coinId?: string;
   coinImage?: string;
   coinName?: string;
+  marketInfo?: {
+    usd?: number;
+    usd_24h_change?: number;
+    high24h?: number;
+    low24h?: number;
+    volume24h?: number;
+  };
 }
 
 export default function TradingChart({
@@ -36,6 +43,7 @@ export default function TradingChart({
   symbol = "BTC/USDT",
   coinImage,
   coinName = "Bitcoin",
+  marketInfo,
 }: TradingChartProps) {
   const activeTab = activeView;
   const [quoteData, setQuoteData] = useState<TwelveDataQuote | null>(null);
@@ -98,7 +106,7 @@ export default function TradingChart({
         )}
 
         {activeTab === "info" && (
-          <div className="absolute inset-0 h-full bg-[#181818] p-6 text-white z-50 overflow-y-auto">
+          <div className="absolute inset-0 h-full bg-[#181818] p-6 text-white z-[9999] overflow-y-auto">
             <div className="flex items-center gap-2 mb-2 border-b pb-5 border-b-white/5">
               <div className="h-7 w-7">
                 {coinImage ? (
@@ -119,13 +127,50 @@ export default function TradingChart({
               <h3 className="text-gray-100 text-lg font-semibold">Information</h3>
               {loading ? (
                 <div className="text-gray-400 text-sm mt-2">Loading data...</div>
-              ) : quoteData ? (
-                <div className="mt-2">
-                  <InfoRow label="Price" value={formatPrice(quoteData.close)} />
-                  <InfoRow label="24h Change" value={`${parseFloat(quoteData.percent_change).toFixed(2)}%`} />
-                  <InfoRow label="Previous Close" value={formatPrice(quoteData.previous_close)} />
-                  <InfoRow label="52 Week High" value={formatPrice(quoteData.fifty_two_week?.high)} />
-                  <InfoRow label="52 Week Low" value={formatPrice(quoteData.fifty_two_week?.low)} />
+              ) : (quoteData || marketInfo) ? (
+                <div className="mt-2 space-y-2">
+                  <InfoRow
+                    label="Price"
+                    value={
+                      marketInfo?.usd
+                        ? `$${marketInfo.usd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 })}`
+                        : formatPrice(quoteData?.close)
+                    }
+                  />
+                  <InfoRow
+                    label="24h Change"
+                    value={
+                      marketInfo?.usd_24h_change !== undefined && marketInfo?.usd_24h_change !== null
+                        ? `${marketInfo.usd_24h_change.toFixed(2)}%`
+                        : quoteData?.percent_change
+                        ? `${parseFloat(quoteData.percent_change).toFixed(2)}%`
+                        : 'N/A'
+                    }
+                  />
+                  <InfoRow
+                    label="Previous Close"
+                    value={
+                      marketInfo?.usd !== undefined && marketInfo?.usd_24h_change !== undefined
+                        ? formatPrice(String(marketInfo.usd - (marketInfo.usd_24h_change / 100) * marketInfo.usd))
+                        : formatPrice(quoteData?.previous_close)
+                    }
+                  />
+                  <InfoRow
+                    label="24h High"
+                    value={
+                      marketInfo?.high24h
+                        ? `$${marketInfo.high24h.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 })}`
+                        : formatPrice(quoteData?.fifty_two_week?.high)
+                    }
+                  />
+                  <InfoRow
+                    label="24h Low"
+                    value={
+                      marketInfo?.low24h
+                        ? `$${marketInfo.low24h.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 })}`
+                        : formatPrice(quoteData?.fifty_two_week?.low)
+                    }
+                  />
                 </div>
               ) : (
                 <div className="mt-2">

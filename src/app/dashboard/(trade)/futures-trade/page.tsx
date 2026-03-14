@@ -114,6 +114,7 @@ function FutureTradingPageContent() {
     marginLevel: "0%",
     pnl: "0.00"
   });
+  const [activeView, setActiveView] = useState<'chart' | 'info'>('chart');
 
   const fetchWallet = async () => {
     try {
@@ -240,15 +241,31 @@ function FutureTradingPageContent() {
             {/* Chart Area */}
             <div className="grow flex flex-col min-w-0 bg-[#181818] lg:border-r border-white/5 order-1">
               <div className="flex items-center gap-4 px-4 md:py-3 py-2 border-b border-white/5 text-[12px] font-semibold">
-                <span className="text-[#00B595] border-b-2 border-[#00B595] pb-1 cursor-pointer">Chart</span>
-                <span className="text-gray-500 cursor-pointer hover:text-white transition-colors">Info</span>
+                <span
+                  className={`pb-1 cursor-pointer ${activeView === 'chart'
+                    ? 'text-[#00B595] border-b-2 border-[#00B595]'
+                    : 'text-gray-500 hover:text-white transition-colors'}`}
+                  onClick={() => setActiveView('chart')}
+                >
+                  Chart
+                </span>
+                <span
+                  className={`pb-1 cursor-pointer ${activeView === 'info'
+                    ? 'text-[#00B595] border-b-2 border-[#00B595]'
+                    : 'text-gray-500 hover:text-white transition-colors'}`}
+                  onClick={() => setActiveView('info')}
+                >
+                  Info
+                </span>
               </div>
               <div className="h-100 md:h-137.5">
                 <TradingChart
+                  activeView={activeView}
                   symbol={assetParam}
                   currentPrice={marketInfo?.usd}
                   high24h={marketInfo?.high24h}
                   low24h={marketInfo?.low24h}
+                  marketInfo={marketInfo}
                   onTrade={handleExecuteTrade}
                   externalSize={sharedSize}
                   onSizeChange={setSharedSize}

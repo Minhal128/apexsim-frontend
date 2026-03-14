@@ -284,6 +284,7 @@ function TradingPageContent() {
               coinId={selectedCoin.id}
               coinImage={selectedCoin.image}
               coinName={selectedCoin.name}
+              marketInfo={marketInfo}
             />
           </div>
         </div>
