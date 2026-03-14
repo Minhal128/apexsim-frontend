@@ -24,8 +24,9 @@ export default function TradeForm({ symbol = "BTC/USDT" }: TradeFormProps) {
   const [currentMarketPrice, setCurrentMarketPrice] = useState("0.00");
   const [amount, setAmount] = useState("");
   const [total, setTotal] = useState("");
+  const assetBase = symbol.split('/')[0];
   const [usdtBalance, setUsdtBalance] = useState("0");
-  const [btcBalance, setBtcBalance] = useState("0");
+  const [assetBalance, setAssetBalance] = useState("0");
   const [loading, setLoading] = useState(false);
 
   const fetchBalances = async () => {
@@ -35,7 +36,7 @@ export default function TradeForm({ symbol = "BTC/USDT" }: TradeFormProps) {
       const usdt = data.balances.find((b: any) => b.asset === "USDT")?.amount || 0;
       const asset = data.balances.find((b: any) => b.asset === assetBase)?.amount || 0;
       setUsdtBalance(usdt.toFixed(2));
-      setBtcBalance(asset.toFixed(6));
+      setAssetBalance(asset.toFixed(6));
     } catch (err) {
       console.error("Failed to fetch balances:", err);
     }
@@ -218,7 +219,7 @@ export default function TradeForm({ symbol = "BTC/USDT" }: TradeFormProps) {
           <span>
             Avbl{" "}
             <span className="text-gray-300 font-medium">
-              {side === "buy" ? `${usdtBalance} USDT` : `${btcBalance} BTC`}
+              {side === "buy" ? `${usdtBalance} USDT` : `${assetBalance} ${assetBase}`}
             </span>
           </span>
           <FaPlusCircle
@@ -296,7 +297,7 @@ export default function TradeForm({ symbol = "BTC/USDT" }: TradeFormProps) {
 
         <div className="relative h-6 flex items-center mt-4 mb-2 px-1 cursor-pointer">
           {(() => {
-            const balanceNum = side === "buy" ? parseFloat(usdtBalance) || 0 : parseFloat(btcBalance) || 0;
+            const balanceNum = side === "buy" ? parseFloat(usdtBalance) || 0 : parseFloat(assetBalance) || 0;
             const priceNum = orderType === "Market" ? parseFloat(currentMarketPrice) : (parseFloat(price) || 0);
 
             let maxAmount = 0;
@@ -422,7 +423,7 @@ export default function TradeForm({ symbol = "BTC/USDT" }: TradeFormProps) {
               <span className="text-gray-500 border-b border-dotted border-gray-700">
                 BTC Balance
               </span>
-              <span className="text-white font-medium">{btcBalance} BTC</span>
+              <span className="text-white font-medium">{assetBalance} {assetBase}</span>
             </div>
           </div>
         )}

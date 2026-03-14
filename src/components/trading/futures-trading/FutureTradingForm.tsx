@@ -37,7 +37,7 @@ export default function TradeForm({ symbol = "BTC/USDT", balance, onSizeChange, 
     const [size, setSize] = useState("");
     const [total, setTotal] = useState("");
     const [usdtBalance, setUsdtBalance] = useState("0");
-    const [loading, setLoading] = useState(false);
+    const [loadingAction, setLoadingAction] = useState<"long" | "short" | "close" | null>(null);
     const [positions, setPositions] = useState<any[]>([]);
 
     const [isLeverageOpen, setIsLeverageOpen] = useState(false);
@@ -114,7 +114,7 @@ export default function TradeForm({ symbol = "BTC/USDT", balance, onSizeChange, 
             return;
         }
 
-        setLoading(true);
+        setLoadingAction(type);
         try {
             await apiRequest("/trading/order", {
                 method: "POST",
@@ -138,7 +138,7 @@ export default function TradeForm({ symbol = "BTC/USDT", balance, onSizeChange, 
         } catch (err: any) {
             toast.addToast(err.message || "Failed to open position", "error");
         } finally {
-            setLoading(false);
+            setLoadingAction(null);
         }
     };
 
@@ -154,7 +154,7 @@ export default function TradeForm({ symbol = "BTC/USDT", balance, onSizeChange, 
             return;
         }
 
-        setLoading(true);
+        setLoadingAction("close");
         try {
             const position = positions.find(p => p.symbol === symbol);
             if (!position) {
@@ -184,7 +184,7 @@ export default function TradeForm({ symbol = "BTC/USDT", balance, onSizeChange, 
         } catch (err: any) {
             toast.addToast(err.message || "Failed to close position", "error");
         } finally {
-            setLoading(false);
+            setLoadingAction(null);
         }
     };
 
@@ -374,17 +374,17 @@ export default function TradeForm({ symbol = "BTC/USDT", balance, onSizeChange, 
                 <div className="flex gap-3">
                     <button
                         onClick={() => handleOpenPosition("long")}
-                        disabled={loading}
+                        disabled={loadingAction !== null}
                         className="flex-1 py-3 bg-[#00B595] text-white rounded font-bold text-sm cursor-pointer active:scale-95 transition-all shadow-lg shadow-[#00B595]/10 disabled:opacity-50"
                     >
-                        {loading ? "Opening..." : "Open long"}
+                        {loadingAction === "long" ? "Opening..." : "Open long"}
                     </button>
                     <button
                         onClick={() => handleOpenPosition("short")}
-                        disabled={loading}
+                        disabled={loadingAction !== null}
                         className="flex-1 py-3 bg-[#ef5350] text-white rounded font-bold text-sm cursor-pointer active:scale-95 transition-all shadow-lg shadow-[#ef5350]/10 disabled:opacity-50"
                     >
-                        {loading ? "Opening..." : "Open short"}
+                        {loadingAction === "short" ? "Opening..." : "Open short"}
                     </button>
                 </div>
             )}
@@ -392,10 +392,10 @@ export default function TradeForm({ symbol = "BTC/USDT", balance, onSizeChange, 
             {tab === "Close" && (
                 <button
                     onClick={handleClosePosition}
-                    disabled={loading || positions.length === 0}
+                    disabled={loadingAction !== null || positions.length === 0}
                     className="w-full py-3 bg-[#00B595] text-white rounded font-bold text-sm cursor-pointer active:scale-95 transition-all shadow-lg shadow-[#00B595]/10 disabled:opacity-50"
                 >
-                    {loading ? "Closing..." : "Close Position"}
+                    {loadingAction === "close" ? "Closing..." : "Close Position"}
                 </button>
             )}
 
