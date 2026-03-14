@@ -105,7 +105,8 @@ function TradingPageContent() {
   useEffect(() => {
     const assetBase = selectedCoin.symbol.toUpperCase();
     const socket = initializeSocket();
-    socket.emit('subscribe-market', 'crypto');
+    const subCategory = searchParams?.get('category') || 'crypto';
+    socket.emit('subscribe-market', subCategory.toLowerCase());
     const handler = (data: any) => {
       if (data?.[assetBase]) setMarketInfo(data[assetBase]);
     };

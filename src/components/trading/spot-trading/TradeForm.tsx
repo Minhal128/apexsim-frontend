@@ -6,6 +6,7 @@ import SettingsModal from "./TradingSetting";
 import { apiRequest } from "@/lib/api";
 import { useToast } from "@/components/ToastContext";
 import { useRouter } from "next/navigation";
+import { initializeSocket } from "@/lib/socket";
 
 type OrderType = "Limit" | "Market" | "Stop limit";
 
@@ -20,6 +21,7 @@ export default function TradeForm({ symbol = "BTC/USDT" }: TradeFormProps) {
   const [side, setSide] = useState<"buy" | "sell">("buy");
   const [orderType, setOrderType] = useState<OrderType>("Limit");
   const [price, setPrice] = useState("0.00");
+  const [currentMarketPrice, setCurrentMarketPrice] = useState("0.00");
   const [amount, setAmount] = useState("");
   const [total, setTotal] = useState("");
   const [usdtBalance, setUsdtBalance] = useState("0");
@@ -43,9 +45,10 @@ export default function TradeForm({ symbol = "BTC/USDT" }: TradeFormProps) {
     try {
       const prices = await apiRequest("/market/prices");
       const assetBase = symbol.split('/')[0];
-      const currentPrice = prices[assetBase]?.usd || 0;
-      if (currentPrice > 0) {
-        setPrice(currentPrice.toString());
+      const fetchedPrice = prices[assetBase]?.usd || 0;
+      if (fetchedPrice > 0) {
+        setPrice((prev) => prev === "0.00" ? fetchedPrice.toString() : prev);
+        setCurrentMarketPrice(fetchedPrice.toString());
       }
     } catch (err) {
       console.error("Failed to fetch market price:", err);
@@ -55,6 +58,26 @@ export default function TradeForm({ symbol = "BTC/USDT" }: TradeFormProps) {
   useEffect(() => {
     fetchBalances();
     fetchMarketPrice();
+
+    const socket = initializeSocket();
+    if (!socket) return;
+    
+    // In our system, marketType comes from the context, but let's assume it's crypto for default
+    socket.emit('subscribe-market', 'crypto');
+
+    const handleMarketUpdate = (data: any) => {
+        const assetBase = symbol.split('/')[0];
+        if (data[assetBase] && data[assetBase].usd) {
+            const livePrice = data[assetBase].usd.toString();
+            setCurrentMarketPrice(livePrice);
+        }
+    };
+
+    socket.on('market-update', handleMarketUpdate);
+
+    return () => {
+        socket.off('market-update', handleMarketUpdate);
+    };
   }, [symbol]);
 
   // Sync total when price or amount changes
@@ -73,7 +96,7 @@ export default function TradeForm({ symbol = "BTC/USDT" }: TradeFormProps) {
   const handleAmountChange = (val: string) => {
     setAmount(val);
     if (orderType === "Market") {
-      const p = parseFloat(price) || 0;
+      const p = parseFloat(currentMarketPrice) || 0;
       const a = parseFloat(val) || 0;
       if (p > 0 && a > 0) {
         setTotal((p * a).toFixed(2));
@@ -104,7 +127,7 @@ export default function TradeForm({ symbol = "BTC/USDT" }: TradeFormProps) {
           symbol: symbol,
           type: side,
           marketType: "spot",
-          price: parseFloat(price),
+          price: orderType === "Market" ? parseFloat(currentMarketPrice) : parseFloat(price),
           amount: parseFloat(amount),
           orderType: orderType.toLowerCase(),
         }),
@@ -242,7 +265,7 @@ export default function TradeForm({ symbol = "BTC/USDT" }: TradeFormProps) {
                 <input
                   placeholder="Price"
                   type="text"
-                  value={`Market Price (~${price})`}
+                  value={`Market Price (~${currentMarketPrice})`}
                   readOnly
                   className="w-full bg-[#181B1F]/50 border border-white/5 rounded-md p-2.5 text-gray-500 text-sm outline-none cursor-not-allowed"
                 />
@@ -271,19 +294,64 @@ export default function TradeForm({ symbol = "BTC/USDT" }: TradeFormProps) {
           )}
         </div>
 
-        <div className="relative h-6 flex items-center mt-2 px-1 cursor-pointer">
-          <div className="absolute w-full h-0.5 bg-[#2d3036] rounded" />
-          <div className="absolute w-full flex justify-between z-10">
-            {[0, 1, 2, 3].map((i) => (
-              <div
-                key={i}
-                className={`w-3.75 h-3.75 rotate-45 rounded-sm border-3 ${i === 0
-                  ? "bg-[#141517] border-[#34C759]"
-                  : "bg-[#141517] border-[#2d3036]"
-                  }`}
-              />
-            ))}
-          </div>
+        <div className="relative h-6 flex items-center mt-4 mb-2 px-1 cursor-pointer">
+          {(() => {
+            const balanceNum = side === "buy" ? parseFloat(usdtBalance) || 0 : parseFloat(btcBalance) || 0;
+            const priceNum = orderType === "Market" ? parseFloat(currentMarketPrice) : (parseFloat(price) || 0);
+
+            let maxAmount = 0;
+            if (side === "buy" && priceNum > 0) {
+              maxAmount = balanceNum / priceNum;
+            } else if (side === "sell") {
+              maxAmount = balanceNum;
+            }
+
+            const currentPercent = maxAmount > 0 ? ((parseFloat(amount) || 0) / maxAmount) * 100 : 0;
+            const fillPercent = Math.min(Math.max(currentPercent, 0), 100);
+
+            return (
+              <>
+                <div className="absolute w-[calc(100%-8px)] h-[3px] bg-[#2b3139] rounded" />
+                <div className={`absolute h-[3px] rounded transition-all ${side === 'buy' ? 'bg-[#0eb27e]' : 'bg-[#db4658]'}`} style={{ width: `calc(${fillPercent}% - 8px)` }} />
+                <div className="absolute w-[calc(100%-8px)] flex justify-between z-10 left-1">
+                  {[0, 25, 50, 75, 100].map((percent) => {
+                    const isFilled = fillPercent >= percent;
+                    return (
+                      <div
+                        key={percent}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (maxAmount > 0) {
+                            const newAmount = (maxAmount * (percent / 100));
+                            handleAmountChange(newAmount > 0 ? newAmount.toFixed(6).replace(/\.?0+$/, '') : "");
+                          }
+                        }}
+                        className={`w-3.5 h-3.5 rotate-45 rounded-[2px] transition-all
+                          ${isFilled 
+                            ? (side === 'buy' ? 'bg-[#0eb27e]' : 'bg-[#db4658]') 
+                            : 'bg-[#181a20] border-[2.5px] border-[#2b3139]'
+                          }`}
+                      />
+                    );
+                  })}
+                </div>
+                <input
+                   type="range"
+                   min="0"
+                   max="100"
+                   value={fillPercent || 0}
+                   onChange={(e) => {
+                       const pct = parseFloat(e.target.value);
+                       if (maxAmount > 0) {
+                          const newAmount = (maxAmount * (pct / 100));
+                          handleAmountChange(newAmount > 0 ? newAmount.toFixed(6).replace(/\.?0+$/, '') : "");
+                       }
+                   }}
+                   className="absolute w-full h-full opacity-0 cursor-pointer z-20"
+                />
+              </>
+            );
+          })()}
         </div>
 
         <div className="relative">
@@ -308,7 +376,11 @@ export default function TradeForm({ symbol = "BTC/USDT" }: TradeFormProps) {
           </div>
           <div className="flex gap-2 text-[17px] mt-1">
             <span className="text-gray-500">Max Buy</span>
-            <span className="text-white">0 BTC</span>
+            <span className="text-white">
+              {((orderType === 'Market' ? currentMarketPrice : price) && parseFloat(orderType === 'Market' ? currentMarketPrice : price) > 0) 
+                ? (parseFloat(usdtBalance) / parseFloat(orderType === 'Market' ? currentMarketPrice : price)).toFixed(6) 
+                : "0.000000"} {symbol.split('/')[0]}
+            </span>
           </div>
         </div>
 

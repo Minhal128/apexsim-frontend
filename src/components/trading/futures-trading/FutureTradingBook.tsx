@@ -102,6 +102,10 @@ export default function FutureTradingBook({ symbol = "BTC/USDT", currentPrice }:
     const asset = symbol.split('/')[0];
     const basePrice = currentPrice || 88200.84;
     const [activeTab, setActiveTab] = useState<'Order books' | 'Last trades'>('Order books');
+    const [precision, setPrecision] = useState('0.01');
+    const [showPrecisionMenu, setShowPrecisionMenu] = useState(false);
+
+    const precisionOptions = ['0.1', '0.01', '0.001'];
 
     // Initialized empty — populated client-side only to avoid SSR/hydration mismatch
     // (Math.random() and toLocaleString produce different values on server vs client)
@@ -163,11 +167,30 @@ export default function FutureTradingBook({ symbol = "BTC/USDT", currentPrice }:
                     </svg>
                 </div>
 
-                <div className="flex items-center gap-1.5">
-                    <div className="bg-[#24262b] pl-2 pr-1.5 py-0.5 rounded flex items-center gap-3 cursor-pointer hover:bg-[#2d3036] border border-white/5">
-                        <span className="text-[10px] text-gray-300">0.01</span>
+                <div className="flex items-center gap-1.5 relative">
+                    <div 
+                        onClick={() => setShowPrecisionMenu(!showPrecisionMenu)}
+                        className="bg-[#24262b] pl-2 pr-1.5 py-0.5 rounded flex items-center gap-3 cursor-pointer hover:bg-[#2d3036] border border-white/5"
+                    >
+                        <span className="text-[10px] text-gray-300">{precision}</span>
                         <FaCaretDown size={10} className="text-gray-500" />
                     </div>
+                    {showPrecisionMenu && (
+                        <div className="absolute top-full right-6 z-50 mt-1 w-20 bg-[#24262b] border border-[#2d3036] rounded shadow-xl py-1">
+                            {precisionOptions.map((opt) => (
+                                <div
+                                    key={opt}
+                                    onClick={() => {
+                                        setPrecision(opt);
+                                        setShowPrecisionMenu(false);
+                                    }}
+                                    className={`px-3 py-1.5 text-[11px] cursor-pointer hover:bg-[#2d3036] ${precision === opt ? 'text-[#00B595]' : 'text-gray-300'}`}
+                                >
+                                    {opt}
+                                </div>
+                            ))}
+                        </div>
+                    )}
                     <BsThreeDotsVertical className="text-gray-500 cursor-pointer hover:text-white" size={14} />
                 </div>
             </div>
@@ -192,7 +215,7 @@ export default function FutureTradingBook({ symbol = "BTC/USDT", currentPrice }:
                                 />
 
                                 <span className={`font-medium z-10 ${item.type === 'sell' ? 'text-[#ef5350]' : 'text-[#00B595]'}`}>
-                                    {item.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    {(Math.floor(item.price / parseFloat(precision)) * parseFloat(precision)).toFixed(precision.split('.')[1]?.length || 0)}
                                 </span>
 
                                 <span className="text-right text-[#c9ccd0] z-10 font-medium tracking-tight">

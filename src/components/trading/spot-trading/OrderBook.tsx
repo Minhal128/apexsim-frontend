@@ -59,6 +59,11 @@ const ORDER_DATA = [
 
 export default function OrderBook({ symbol = "BTC/USDT" }: { symbol?: string }) {
     const [activeTab, setActiveTab] = useState<'liquidity' | 'trades'>('liquidity');
+    const [precision, setPrecision] = useState('0.01');
+    const [showPrecisionMenu, setShowPrecisionMenu] = useState(false);
+
+    const precisionOptions = ['0.1', '0.01', '0.001'];
+
     return (
         <div className="w-full md:w-[320px] flex flex-col bg-[#181818] border-x border-white/5 h-full select-none">
 
@@ -105,6 +110,7 @@ export default function OrderBook({ symbol = "BTC/USDT" }: { symbol?: string }) 
             </div>
 
             <div className="flex items-center justify-between px-3 py-2.5">
+
                 <div className="flex items-center gap-4">
                     <div className="flex items-center gap-3.5">
                         <svg width="15" height="15" viewBox="0 0 16 16" className="text-[#00B595] cursor-pointer">
@@ -124,11 +130,30 @@ export default function OrderBook({ symbol = "BTC/USDT" }: { symbol?: string }) 
                     </div>
                 </div>
 
-                <div className="flex items-center gap-1.5">
-                    <div className="bg-[#24262b] pl-2 pr-1.5 py-0.5 rounded flex items-center gap-3 cursor-pointer hover:bg-[#2d3036] border border-white/5">
-                        <span className="text-[11px] text-gray-300">0.01</span>
+                <div className="flex items-center gap-1.5 relative">
+                    <div 
+                        onClick={() => setShowPrecisionMenu(!showPrecisionMenu)}
+                        className="bg-[#24262b] pl-2 pr-1.5 py-0.5 rounded flex items-center gap-3 cursor-pointer hover:bg-[#2d3036] border border-white/5"
+                    >
+                        <span className="text-[11px] text-gray-300">{precision}</span>
                         <FaCaretDown size={10} className="text-gray-500" />
                     </div>
+                    {showPrecisionMenu && (
+                        <div className="absolute top-full right-6 z-50 mt-1 w-20 bg-[#24262b] border border-[#2d3036] rounded shadow-xl py-1">
+                            {precisionOptions.map((opt) => (
+                                <div
+                                    key={opt}
+                                    onClick={() => {
+                                        setPrecision(opt);
+                                        setShowPrecisionMenu(false);
+                                    }}
+                                    className={`px-3 py-1.5 text-[11px] cursor-pointer hover:bg-[#2d3036] ${precision === opt ? 'text-[#00B595]' : 'text-gray-300'}`}
+                                >
+                                    {opt}
+                                </div>
+                            ))}
+                        </div>
+                    )}
                     <BsThreeDotsVertical className="text-gray-500 cursor-pointer hover:text-white" size={16} />
                 </div>
             </div>
@@ -154,7 +179,7 @@ export default function OrderBook({ symbol = "BTC/USDT" }: { symbol?: string }) 
                                     style={{ width: `${item.depth}%` }}
                                 />
                                 <span className={`font-medium z-10 ${item.type === 'sell' ? 'text-[#F6465D]' : 'text-[#2EBD85]'}`}>
-                                    {item.price.toFixed(2)}
+                                    {(Math.floor(item.price / parseFloat(precision)) * parseFloat(precision)).toFixed(precision.split('.')[1]?.length || 0)}
                                 </span>
                                 <span className="text-right text-[#c9ccd0] z-10 font-medium tracking-tight">
                                     {item.amount}

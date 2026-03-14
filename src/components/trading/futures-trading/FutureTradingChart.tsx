@@ -141,7 +141,7 @@ export default function FutureTradingChart({
         {/* TradingView Widget */}
         <div className="w-full h-full" ref={container}>
           <AdvancedRealTimeChart
-            symbol={`BINANCE:${symbol.replace('/', '')}`}
+            symbol={symbol.includes('/') && symbol.includes('USDT') ? `BINANCE:${symbol.replace('/', '')}` : symbol.replace('/', '')}
             theme="dark"
             autosize
             interval={activeInterval as any}

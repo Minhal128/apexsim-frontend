@@ -5,6 +5,7 @@ import { apiRequest } from "@/lib/api";
 export default function BotSection() {
   const [walletData, setWalletData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<"Spot Grid" | "Futures Grid">("Spot Grid");
 
   useEffect(() => {
     fetchWallet();
@@ -41,8 +42,18 @@ export default function BotSection() {
         </div>
 
         <div className="flex gap-4 mb-8">
-          <button className="bg-[#262628] text-white px-4 py-1.5 rounded text-sm font-medium cursor-pointer">Spot Grid</button>
-          <button className="text-gray-500 hover:text-gray-300 px-4 py-1.5 text-sm font-medium cursor-pointer transition-colors">Futures Grid</button>
+          <button 
+            onClick={() => setActiveTab("Spot Grid")}
+            className={`${activeTab === "Spot Grid" ? "bg-[#262628] text-white" : "text-gray-500 hover:text-gray-300"} px-4 py-1.5 rounded text-sm font-medium cursor-pointer transition-colors`}
+          >
+            Spot Grid
+          </button>
+          <button 
+            onClick={() => setActiveTab("Futures Grid")}
+            className={`${activeTab === "Futures Grid" ? "bg-[#262628] text-white" : "text-gray-500 hover:text-gray-300"} px-4 py-1.5 rounded text-sm font-medium cursor-pointer transition-colors`}
+          >
+            Futures Grid
+          </button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-4 border-b border-white/5 pb-4">

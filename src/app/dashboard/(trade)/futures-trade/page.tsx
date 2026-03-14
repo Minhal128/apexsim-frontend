@@ -62,7 +62,8 @@ function FutureTradingPageContent() {
     fetchMarketData();
 
     const socket = initializeSocket();
-    socket.emit('subscribe-market', 'crypto');
+    const subCategory = searchParams?.get('category') || 'crypto';
+    socket.emit('subscribe-market', subCategory.toLowerCase());
     
     const handler = (data: any) => {
       if (data && data[assetBase] && data[assetBase].usd > 0) {

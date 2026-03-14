@@ -173,7 +173,8 @@ export default function TradeForm({ symbol = "BTC/USDT", balance, onSizeChange, 
                     amount: parseFloat(size),
                     leverage: leverage,
                     marginMode: marginMode,
-                    orderType: "market" // Close is usually market or custom price
+                    orderType: "market", // Close is usually market or custom price
+                    action: "close"
                 }),
             });
             fetchBalance();
@@ -291,19 +292,68 @@ export default function TradeForm({ symbol = "BTC/USDT", balance, onSizeChange, 
                 </div>
             )}
 
-            <div className="relative h-6 flex items-center px-1 cursor-pointer my-1">
-                <div className="absolute w-full h-0.5 bg-[#2d3036] rounded" />
-                <div className="absolute w-full flex justify-between z-10">
-                    {[0, 25, 50, 75, 100].map((i) => (
-                        <div key={i} className={`w-2.5 h-2.5 rotate-45 rounded-sm border-2 transition-colors ${i === 0 ? 'bg-[#121212] border-[#00B595]' : 'bg-[#121212] border-[#2d3036] hover:border-gray-500'}`} />
-                    ))}
-                </div>
+            <div className="relative h-6 flex items-center px-1 cursor-pointer my-4">
+                {(() => {
+                    const balanceNum = parseFloat(usdtBalance) || 0;
+                    const priceNum = parseFloat(price) || 0;
+                    
+                    let maxAmount = 0;
+                    if (priceNum > 0) {
+                        maxAmount = (balanceNum * leverage) / priceNum;
+                    }
+
+                    const currentPercent = maxAmount > 0 ? ((parseFloat(size) || 0) / maxAmount) * 100 : 0;
+                    const fillPercent = Math.min(Math.max(currentPercent, 0), 100);
+
+                    return (
+                      <>
+                        <div className="absolute w-[calc(100%-8px)] h-[3px] bg-[#2b3139] rounded" />
+                        <div className={`absolute h-[3px] rounded transition-all ${tab === 'Open' ? 'bg-[#0eb27e]' : 'bg-[#db4658]'}`} style={{ width: `calc(${fillPercent}% - 8px)` }} />
+                        <div className="absolute w-[calc(100%-8px)] flex justify-between z-10 left-1">
+                          {[0, 25, 50, 75, 100].map((percent) => {
+                            const isFilled = fillPercent >= percent;
+                            return (
+                              <div
+                                key={percent}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (maxAmount > 0) {
+                                    const newSize = (maxAmount * (percent / 100));
+                                    setSize(newSize > 0 ? newSize.toFixed(4).replace(/\.?0+$/, '') : "");
+                                  }
+                                }}
+                                className={`w-3.5 h-3.5 rotate-45 rounded-[2px] transition-all
+                                  ${isFilled 
+                                    ? (tab === 'Open' ? 'bg-[#0eb27e]' : 'bg-[#db4658]') 
+                                    : 'bg-[#181a20] border-[2.5px] border-[#2b3139]'
+                                  }`}
+                              />
+                            );
+                          })}
+                        </div>
+                        <input
+                           type="range"
+                           min="0"
+                           max="100"
+                           value={fillPercent || 0}
+                           onChange={(e) => {
+                               const pct = parseFloat(e.target.value);
+                               if (maxAmount > 0) {
+                                  const newSize = (maxAmount * (pct / 100));
+                                  setSize(newSize > 0 ? newSize.toFixed(4).replace(/\.?0+$/, '') : "");
+                               }
+                           }}
+                           className="absolute w-full h-full opacity-0 cursor-pointer z-20"
+                        />
+                      </>
+                    );
+                })()}
             </div>
 
             <div className="relative">
                 <input
                     placeholder='Total'
-                    value={total}
+                    value={price && size ? (parseFloat(price) * parseFloat(size)).toFixed(2) : ""}
                     readOnly
                     className="w-full bg-[#1E2023] border border-white/5 rounded-md p-2.5 text-sm outline-none"
                 />

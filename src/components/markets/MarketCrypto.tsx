@@ -80,12 +80,14 @@ const MarketContent = ({
     activeTab,
     favorites,
     onToggleFavorite,
+    activeCategory,
 }: {
     cardData: CardData[];
     tableData: TableData[];
     activeTab: string;
     favorites: Set<string>;
     onToggleFavorite: (pair: string) => void;
+    activeCategory: string;
 }) => {
     const router = useRouter()
 
@@ -112,9 +114,9 @@ const MarketContent = ({
                             <span className={`text-sm font-semibold ${item.change.startsWith('+') ? 'text-green-500' : 'text-red-500'}`}>{item.change}</span>
                         </div>
                         <div className="text-2xl mb-1 font-bold">{item.price}</div>
-                        <div className="flex justify-between items-center text-gray-500 ">
+                        <div className="flex justify-between items-center text-gray-500 " onClick={() => router.push(activeTab === 'Futures' ? '/dashboard/futures-trade' : '/dashboard/spot-trade')}>
                             <span className="text-sm font-semibold">{item.vol}</span>
-                            <FaPlayCircle size={18} fill="currentColor" />
+                            <FaPlayCircle size={18} fill="currentColor" className="hover:text-blue-500 transition-colors" />
                         </div>
                     </div>
                 ))}
@@ -137,9 +139,22 @@ const MarketContent = ({
                     <tbody className="divide-y divide-white/2">
                         {tableData.map((row, idx) => {
                             const isFav = favorites.has(row.pair);
+                            let baseAsset = row.pair;
+                            let quoteAsset = 'USDT';
+                            if (row.pair.includes('/')) {
+                                baseAsset = row.pair.split('/')[0];
+                                quoteAsset = row.pair.split('/')[1];
+                            } else if (row.pair.length > 3) {
+                                // Fallback if no slash for crypto like BTCUSDT
+                                if (row.pair.endsWith('USDT')) {
+                                    baseAsset = row.pair.replace('USDT', '');
+                                    quoteAsset = 'USDT';
+                                }
+                            }
+                            
                             const tradeTarget = activeTab === 'Futures'
-                                ? '/dashboard/futures-trade'
-                                : '/dashboard/spot-trade';
+                                ? `/dashboard/futures-trade?asset=${encodeURIComponent(baseAsset + '/' + quoteAsset)}&category=${activeCategory.toLowerCase()}`
+                                : `/dashboard/spot-trade?asset=${encodeURIComponent(baseAsset + '/' + quoteAsset)}&category=${activeCategory.toLowerCase()}`;
                             return (
                                 <tr key={idx} className="group hover:bg-white/2 transition-colors">
                                     <td className="py-5 pr-2">
@@ -550,6 +565,7 @@ export default function MarketComponent() {
                         activeTab={activeTab}
                         favorites={favorites}
                         onToggleFavorite={toggleFavorite}
+                        activeCategory={activeCategory}
                     />
                 )}
             </div>

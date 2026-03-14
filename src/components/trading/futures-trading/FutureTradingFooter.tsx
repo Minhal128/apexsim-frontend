@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { FaCaretDown } from "react-icons/fa";
 import { apiRequest } from '@/lib/api';
+import { initializeSocket } from '@/lib/socket';
 
 export default function FutureTradingFooter() {
   const [activeTab, setActiveTab] = useState("Open orders");
@@ -9,7 +10,33 @@ export default function FutureTradingFooter() {
   const [history, setHistory] = useState<any[]>([]);
   const [balances, setBalances] = useState<any[]>([]);
   const [positions, setPositions] = useState<any[]>([]);
+  const [marketPrices, setMarketPrices] = useState<{[key: string]: number}>({});
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const socket = initializeSocket();
+    
+    // We expect the main trading page has already emitted subscribe-market.
+    // If not, we could, but let's just listen.
+    const handleMarketUpdate = (data: any) => {
+        if (!data) return;
+        const newPrices: {[key: string]: number} = {};
+        Object.keys(data).forEach(coin => {
+            if (data[coin] && data[coin].usd) {
+                newPrices[`${coin}/USDT`] = data[coin].usd;
+            }
+        });
+        setMarketPrices(prev => ({...prev, ...newPrices}));
+    };
+    
+    socket.on('market-update', handleMarketUpdate);
+    socket.on('market-data', handleMarketUpdate);
+    
+    return () => {
+        socket.off('market-update', handleMarketUpdate);
+        socket.off('market-data', handleMarketUpdate);
+    };
+  }, []);
 
   const tabs = ['Positions', `Open orders (${orders.length})`, 'Orders history', 'Trade history', 'Funds'];
   const columns = ['Date', 'Pair', 'Type', 'Side', 'Price', 'Amount', 'Filled', 'Total', 'Trigger condition'];
@@ -82,6 +109,12 @@ export default function FutureTradingFooter() {
                 <div className="text-gray-500 text-[15px] font-semibold py-3">Locked</div>
                 <div className="col-span-7"></div>
               </>
+            ) : activeTab === "Positions" ? (
+              positionColumns.map((col) => (
+                <div key={col} className="text-gray-500 text-[15px] font-semibold flex items-center py-3">
+                  {col}
+                </div>
+              ))
             ) : (
               columns.map((col) => (
                 <div key={col} className="text-gray-500 text-[15px] font-semibold flex items-center py-3">
@@ -117,13 +150,27 @@ export default function FutureTradingFooter() {
                     <>
                       <div className="text-white font-bold">{item.symbol} <span className={item.quantity > 0 ? 'text-green-500 text-[10px]' : 'text-red-500 text-[10px]'}>{item.quantity > 0 ? 'LONG' : 'SHORT'}</span></div>
                       <div>{Math.abs(item.quantity).toFixed(4)}</div>
-                      <div>{item.avgPrice?.toLocaleString()}</div>
-                      <div>{(item.avgPrice * 1.001)?.toLocaleString()}</div>
-                      <div className="text-orange-400">{(item.avgPrice * 0.8)?.toLocaleString()}</div>
-                      <div>{(item.totalCost / 5).toFixed(2)} USDT</div>
-                      <div className="text-green-500">+1.24 USDT</div>
-                      <div className="text-green-500">+2.45%</div>
+                      <div>{item.avgPrice?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 })}</div>
+                      <div>{marketPrices[item.symbol] ? marketPrices[item.symbol].toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 }) : item.avgPrice?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 })}</div>
+                      <div className="text-orange-400">--</div>
+                      <div>{item.margin ? item.margin.toFixed(2) : (item.totalCost / 5).toFixed(2)} USDT</div>
+                      {(() => {
+                          const currentPx = marketPrices[item.symbol] || item.avgPrice;
+                          const size = Math.abs(item.quantity);
+                          const pnl = item.quantity > 0 
+                              ? (currentPx - item.avgPrice) * size
+                              : (item.avgPrice - currentPx) * size;
+                          const margin = item.margin || (item.totalCost / 5);
+                          const roe = margin > 0 ? (pnl / margin) * 100 : 0;
+                          return (
+                            <>
+                              <div className={pnl >= 0 ? "text-green-500" : "text-red-500"}>{pnl > 0 ? '+' : ''}{pnl.toFixed(2)} USDT</div>
+                              <div className={roe >= 0 ? "text-green-500" : "text-red-500"}>{roe > 0 ? '+' : ''}{roe.toFixed(2)}%</div>
+                            </>
+                          );
+                      })()}
                       <div className="flex gap-2">
+                        {/* We could add logic to link back to Close tab but that requires setting state in parent. For now, it indicates the symbol. */}
                         <button className="text-blue-500 hover:underline">Close</button>
                       </div>
                     </>

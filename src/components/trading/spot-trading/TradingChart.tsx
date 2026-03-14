@@ -41,8 +41,11 @@ export default function TradingChart({
   const [quoteData, setQuoteData] = useState<TwelveDataQuote | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Convert symbol (e.g. BTC/USDT) to TRADINGVIEW format: BINANCE:BTCUSDT
-  const tvSymbol = `BINANCE:${symbol.replace("/", "").toUpperCase()}`;
+  // Fix prefix based on asset type if possible, or just pass symbol directly
+  // TradingView can auto-resolve symbols like AAPL or EURUSD without exchange prefixes in most cases.
+  const tvSymbol = symbol.includes("/") && symbol.includes("USDT") 
+    ? `BINANCE:${symbol.replace("/", "").toUpperCase()}`
+    : symbol.replace("/", "").toUpperCase();
 
   useEffect(() => {
     if (activeTab === "info") {
