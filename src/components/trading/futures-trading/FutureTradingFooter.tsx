@@ -13,35 +13,6 @@ export default function FutureTradingFooter() {
   const [marketPrices, setMarketPrices] = useState<{[key: string]: number}>({});
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const socket = initializeSocket();
-    
-    // We expect the main trading page has already emitted subscribe-market.
-    // If not, we could, but let's just listen.
-    const handleMarketUpdate = (data: any) => {
-        if (!data) return;
-        const newPrices: {[key: string]: number} = {};
-        Object.keys(data).forEach(coin => {
-            if (data[coin] && data[coin].usd) {
-                newPrices[`${coin}/USDT`] = data[coin].usd;
-            }
-        });
-        setMarketPrices(prev => ({...prev, ...newPrices}));
-    };
-    
-    socket.on('market-update', handleMarketUpdate);
-    socket.on('market-data', handleMarketUpdate);
-    
-    return () => {
-        socket.off('market-update', handleMarketUpdate);
-        socket.off('market-data', handleMarketUpdate);
-    };
-  }, []);
-
-  const tabs = ['Positions', `Open orders (${orders.length})`, 'Orders history', 'Trade history', 'Funds'];
-  const columns = ['Date', 'Pair', 'Type', 'Side', 'Price', 'Amount', 'Filled', 'Total', 'Trigger condition'];
-  const positionColumns = ['Symbol', 'Size', 'Entry Price', 'Mark Price', 'Liq. Price', 'Margin', 'PnL', 'ROE', 'Action'];
-
   const fetchData = async () => {
     try {
       const [ordersData, historyData, walletData, positionsData] = await Promise.all([
@@ -62,8 +33,49 @@ export default function FutureTradingFooter() {
   };
 
   useEffect(() => {
+    const socket = initializeSocket();
+    
+    // We expect the main trading page has already emitted subscribe-market.
+    // If not, we could, but let's just listen.
+    const handleMarketUpdate = (data: any) => {
+        if (!data) return;
+        const newPrices: {[key: string]: number} = {};
+        Object.keys(data).forEach(coin => {
+            if (data[coin] && data[coin].usd) {
+                newPrices[`${coin}/USDT`] = data[coin].usd;
+            }
+        });
+        setMarketPrices(prev => ({...prev, ...newPrices}));
+    };
+
+    const handleTradeUpdate = () => {
+        // Instantly fetch data when a trade event occurs
+        fetchData();
+    };
+    
+    socket.on('market-update', handleMarketUpdate);
+    socket.on('market-data', handleMarketUpdate);
+    
+    socket.on('trading:order-placed', handleTradeUpdate);
+    socket.on('trading:order-executed', handleTradeUpdate);
+    socket.on('trading:order-cancelled', handleTradeUpdate);
+    socket.on('trading:position-opened', handleTradeUpdate);
+    socket.on('trading:position-closed', handleTradeUpdate);
+    
+    return () => {
+        socket.off('market-update', handleMarketUpdate);
+        socket.off('market-data', handleMarketUpdate);
+        socket.off('trading:order-placed', handleTradeUpdate);
+        socket.off('trading:order-executed', handleTradeUpdate);
+        socket.off('trading:order-cancelled', handleTradeUpdate);
+        socket.off('trading:position-opened', handleTradeUpdate);
+        socket.off('trading:position-closed', handleTradeUpdate);
+    };
+  }, []);
+
+  useEffect(() => {
     fetchData();
-    // Refresh every 10 seconds
+    // Refresh every 10 seconds as a fallback
     const interval = setInterval(fetchData, 10000);
     return () => clearInterval(interval);
   }, []);

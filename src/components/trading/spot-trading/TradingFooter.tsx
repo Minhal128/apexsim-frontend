@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { FaCaretDown } from "react-icons/fa";
 import { apiRequest } from '@/lib/api';
 import { useToast } from '@/components/ToastContext';
+import { initializeSocket } from '@/lib/socket';
 
 interface Order {
   _id: string;
@@ -59,6 +60,28 @@ export default function OrderTabs() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    const socket = initializeSocket();
+    
+    const handleTradeUpdate = () => {
+      if (activeTab === 'Open orders') {
+        fetchOpenOrders();
+      } else if (activeTab === 'Orders history' || activeTab === 'Trade history') {
+        fetchOrderHistory();
+      }
+    };
+
+    socket.on('trading:order-placed', handleTradeUpdate);
+    socket.on('trading:order-executed', handleTradeUpdate);
+    socket.on('trading:order-cancelled', handleTradeUpdate);
+
+    return () => {
+      socket.off('trading:order-placed', handleTradeUpdate);
+      socket.off('trading:order-executed', handleTradeUpdate);
+      socket.off('trading:order-cancelled', handleTradeUpdate);
+    };
+  }, [activeTab]);
 
   const handleCancelOrder = async (orderId: string) => {
     try {
