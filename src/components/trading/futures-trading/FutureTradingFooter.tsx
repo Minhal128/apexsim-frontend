@@ -13,6 +13,10 @@ export default function FutureTradingFooter() {
   const [marketPrices, setMarketPrices] = useState<{[key: string]: number}>({});
   const [loading, setLoading] = useState(true);
 
+  const tabs = ["Open orders", "Orders history", "Trade history", "Positions", "Funds"];
+  const columns = ["Date", "Pair", "Type", "Side", "Price", "Amount", "Filled", "Total", "Action"];
+  const positionColumns = ["Pair", "Size", "Entry", "Mark Price", "Pnl", "Margin", "ROE", "Action"];
+
   const fetchData = async () => {
     try {
       const [ordersData, historyData, walletData, positionsData] = await Promise.all([
