@@ -206,19 +206,6 @@ export default function TradeForm({ symbol = "BTC/USDT", balance, onSizeChange, 
                         <FaCaretDown size={12} className="text-gray-500" />
                     </div>
                 </div>
-
-                <div className="md:absolute md:right-5 md:-top-14 flex items-center gap-3 ml-1">
-                    <FaCalculator
-                        onClick={() => setIsCalcOpen(true)}
-                        size={18}
-                        className="cursor-pointer text-white hover:text-white transition-colors"
-                    />
-                    <RiSettingsFill
-                        onClick={() => setIsSettingOpen(true)}
-                        size={20}
-                        className="cursor-pointer text-white hover:text-white transition-colors"
-                    />
-                </div>
             </div>
 
             <div className="flex bg-[#24262b] rounded-md ">
