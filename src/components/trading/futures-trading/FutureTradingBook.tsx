@@ -146,27 +146,9 @@ export default function FutureTradingBook({ symbol = "BTC/USDT", currentPrice }:
                         )}
                     </div>
                 </div>
-                <LuSettings2 size={16} className="text-gray-400 cursor-pointer hover:text-white" />
             </div>
 
-            <div className="flex items-center justify-between px-3 py-2">
-                <div className="flex items-center gap-3.5">
-                    <svg width="14" height="14" viewBox="0 0 16 16" className="text-[#00B595] cursor-pointer">
-                        <rect x="2" y="2" width="5" height="5" fill="currentColor" rx="0.5" />
-                        <rect x="9" y="2" width="5" height="5" fill="currentColor" rx="0.5" />
-                        <rect x="2" y="9" width="5" height="5" fill="currentColor" rx="0.5" opacity="0.5" />
-                        <rect x="9" y="9" width="5" height="5" fill="currentColor" rx="0.5" opacity="0.5" />
-                    </svg>
-                    <svg width="14" height="14" viewBox="0 0 16 16" className="text-gray-600 cursor-pointer hover:text-gray-400">
-                        <rect x="2" y="2" width="12" height="5" fill="currentColor" rx="0.5" />
-                        <rect x="2" y="9" width="12" height="5" fill="currentColor" rx="0.5" opacity="0.5" />
-                    </svg>
-                    <svg width="14" height="14" viewBox="0 0 16 16" className="text-gray-600 cursor-pointer hover:text-gray-400">
-                        <rect x="2" y="2" width="12" height="5" fill="currentColor" rx="0.5" opacity="0.5" />
-                        <rect x="2" y="9" width="12" height="5" fill="currentColor" rx="0.5" />
-                    </svg>
-                </div>
-
+            <div className="flex items-center justify-end px-3 py-2">
                 <div className="flex items-center gap-1.5 relative">
                     <div 
                         onClick={() => setShowPrecisionMenu(!showPrecisionMenu)}
@@ -191,7 +173,6 @@ export default function FutureTradingBook({ symbol = "BTC/USDT", currentPrice }:
                             ))}
                         </div>
                     )}
-                    <BsThreeDotsVertical className="text-gray-500 cursor-pointer hover:text-white" size={14} />
                 </div>
             </div>
 

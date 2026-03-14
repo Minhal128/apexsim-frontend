@@ -16,13 +16,13 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-100 flex justify-end font-sans">
+    <div className="fixed inset-0 z-[100] flex justify-end font-sans">
       <div
         className="absolute inset-0 bg-black/40 backdrop-blur-sm"
         onClick={onClose}
       />
 
-      <div className="relative w-full md:w-100 bg-[#0C0C14] h-full border-l border-white/10 shadow-2xl text-white flex flex-col animate-slide-in-right">
+      <div className="relative w-full md:w-[340px] bg-[#0C0C14] h-full border-l border-white/10 shadow-2xl text-white flex flex-col animate-slide-in-right">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4">
           <h2 className="text-[18px] font-semibold">Settings</h2>

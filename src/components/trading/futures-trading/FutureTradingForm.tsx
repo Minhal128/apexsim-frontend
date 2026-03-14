@@ -3,7 +3,6 @@ import React, { useState, useEffect } from 'react';
 import { FaPlusCircle, FaCaretDown } from "react-icons/fa";
 import { HiOutlineSwitchHorizontal } from "react-icons/hi";
 import { RiSettingsFill } from "react-icons/ri";
-import SettingsModal from '../spot-trading/TradingSetting';
 import { FaCalculator } from "react-icons/fa";
 import TradingCalculator from './CalculatorModel';
 import PreferenceModal from './PreferenceModel';
@@ -457,10 +456,6 @@ export default function TradeForm({ symbol = "BTC/USDT", balance, onSizeChange, 
                 </div>
             </div>
 
-            <SettingsModal
-                isOpen={isSettingOpen}
-                onClose={() => setIsSettingOpen(false)}
-            />
             <TradingCalculator
                 isOpen={isCalcOpen}
                 onClose={() => setIsCalcOpen(false)}

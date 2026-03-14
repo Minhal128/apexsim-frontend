@@ -106,29 +106,9 @@ export default function OrderBook({ symbol = "BTC/USDT" }: { symbol?: string }) 
                         </div>
                     </div>
                 </div>
-                <LuSettings2 size={18} className="text-gray-400 cursor-pointer hover:text-white" />
             </div>
 
-            <div className="flex items-center justify-between px-3 py-2.5">
-
-                <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-3.5">
-                        <svg width="15" height="15" viewBox="0 0 16 16" className="text-[#00B595] cursor-pointer">
-                            <rect x="2" y="2" width="5" height="5" fill="currentColor" rx="0.5" />
-                            <rect x="9" y="2" width="5" height="5" fill="currentColor" rx="0.5" />
-                            <rect x="2" y="9" width="5" height="5" fill="currentColor" rx="0.5" opacity="0.5" />
-                            <rect x="9" y="9" width="5" height="5" fill="currentColor" rx="0.5" opacity="0.5" />
-                        </svg>
-                        <svg width="15" height="15" viewBox="0 0 16 16" className="text-gray-600 cursor-pointer hover:text-gray-400">
-                            <rect x="2" y="2" width="12" height="5" fill="currentColor" rx="0.5" />
-                            <rect x="2" y="9" width="12" height="5" fill="currentColor" rx="0.5" opacity="0.5" />
-                        </svg>
-                        <svg width="15" height="15" viewBox="0 0 16 16" className="text-gray-600 cursor-pointer hover:text-gray-400">
-                            <rect x="2" y="2" width="12" height="5" fill="currentColor" rx="0.5" opacity="0.5" />
-                            <rect x="2" y="9" width="12" height="5" fill="currentColor" rx="0.5" />
-                        </svg>
-                    </div>
-                </div>
+            <div className="flex items-center justify-end px-3 py-2.5">
 
                 <div className="flex items-center gap-1.5 relative">
                     <div 
@@ -154,7 +134,6 @@ export default function OrderBook({ symbol = "BTC/USDT" }: { symbol?: string }) 
                             ))}
                         </div>
                     )}
-                    <BsThreeDotsVertical className="text-gray-500 cursor-pointer hover:text-white" size={16} />
                 </div>
             </div>
 

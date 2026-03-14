@@ -18,11 +18,11 @@ export default function TradingCalculator({ isOpen, onClose }: Props) {
 
   return (
     <div 
-      className="fixed inset-0 z-100 flex items-center md:justify-end justify-center bg-black/60 backdrop-blur-sm p-4"
+      className="fixed inset-0 z-[100] flex items-center md:justify-end justify-center bg-black/60 backdrop-blur-sm p-4"
       onClick={onClose}
     >
       <div 
-        className="bg-[#09090D] md:top-3 md:absolute w-full max-w-100 overflow-hidden shadow-2xl rounded-lg border border-white/5"
+        className="bg-[#09090D] md:top-3 md:absolute w-full max-w-[400px] overflow-hidden shadow-2xl rounded-lg border border-white/5"
         onClick={(e) => e.stopPropagation()}
       >
        

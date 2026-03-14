@@ -46,10 +46,10 @@ export default function PreferenceModal({ isOpen, onClose, onLeverageClick }: Pr
 
   return (
     <div 
-      className="fixed inset-0 z-100 flex justify-end bg-black/60 backdrop-blur-[2px]"
+      className="fixed inset-0 z-[100] flex justify-end bg-black/60 backdrop-blur-[2px]"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="bg-[#08070E] w-full max-w-85 h-screen flex flex-col shadow-2xl animate-in slide-in-from-right duration-300">
+      <div className="bg-[#08070E] w-full max-w-[340px] h-screen flex flex-col shadow-2xl animate-in slide-in-from-right duration-300">
         
         <div className="flex items-center justify-between px-4 bg-[#121212] py-3 border-b border-white/5">
           <h2 className="text-white font-semibold text-[16px]">Preference</h2>

@@ -104,22 +104,39 @@ const MarketContent = ({
     return (
         <>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
-                {cardData.slice(0, 4).map((item, i) => (
-                    <div key={i} className="bg-[#222222] rounded-xl p-5 cursor-pointer group hover:bg-[#282828] transition-colors">
-                        <div className="flex justify-between items-start mb-4">
-                            <div className="flex items-center gap-2">
-                                <PairIcon icons={item.icons} />
-                                <span className="text-sm font-bold text-gray-50 ml-1">{item.pair}</span>
+                {cardData.slice(0, 4).map((item, i) => {
+                    let baseAsset = item.pair;
+                    let quoteAsset = 'USDT';
+                    if (item.pair.includes('/')) {
+                        baseAsset = item.pair.split('/')[0];
+                        quoteAsset = item.pair.split('/')[1];
+                    } else if (item.pair.length > 3) {
+                        if (item.pair.endsWith('USDT')) {
+                            baseAsset = item.pair.replace('USDT', '');
+                            quoteAsset = 'USDT';
+                        }
+                    }
+                    
+                    const tradeTarget = activeTab === 'Futures'
+                        ? `/dashboard/futures-trade?asset=${encodeURIComponent(baseAsset + '/' + quoteAsset)}&category=${activeCategory.toLowerCase()}`
+                        : `/dashboard/spot-trade?asset=${encodeURIComponent(baseAsset + '/' + quoteAsset)}&category=${activeCategory.toLowerCase()}`;
+
+                    return (
+                        <div key={i} className="bg-[#222222] rounded-xl p-5 cursor-pointer group hover:bg-[#282828] transition-colors" onClick={() => router.push(tradeTarget)}>
+                            <div className="flex justify-between items-start mb-4">
+                                <div className="flex items-center gap-2">
+                                    <PairIcon icons={item.icons} />
+                                    <span className="text-sm font-bold text-gray-50 ml-1">{item.pair}</span>
+                                </div>
+                                <span className={`text-sm font-semibold ${item.change.startsWith('+') ? 'text-green-500' : 'text-red-500'}`}>{item.change}</span>
                             </div>
-                            <span className={`text-sm font-semibold ${item.change.startsWith('+') ? 'text-green-500' : 'text-red-500'}`}>{item.change}</span>
+                            <div className="text-2xl mb-1 font-bold">{item.price}</div>
+                            <div className="flex justify-between items-center text-gray-500 ">
+                                <span className="text-sm font-semibold">{item.vol}</span>
+                            </div>
                         </div>
-                        <div className="text-2xl mb-1 font-bold">{item.price}</div>
-                        <div className="flex justify-between items-center text-gray-500 " onClick={() => router.push(activeTab === 'Futures' ? '/dashboard/futures-trade' : '/dashboard/spot-trade')}>
-                            <span className="text-sm font-semibold">{item.vol}</span>
-                            <FaPlayCircle size={18} fill="currentColor" className="hover:text-blue-500 transition-colors" />
-                        </div>
-                    </div>
-                ))}
+                    );
+                })}
             </div>
 
             <div className="w-full overflow-x-auto">
