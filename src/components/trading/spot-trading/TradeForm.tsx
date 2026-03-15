@@ -32,11 +32,16 @@ export default function TradeForm({ symbol = "BTC/USDT" }: TradeFormProps) {
   const fetchBalances = async () => {
     try {
       const data = await apiRequest("/wallet");
-      const assetBase = symbol.split('/')[0];
-      const usdt = data.balances.find((b: any) => b.asset === "USDT")?.amount || 0;
-      const asset = data.balances.find((b: any) => b.asset === assetBase)?.amount || 0;
-      setUsdtBalance(usdt.toFixed(2));
-      setAssetBalance(asset.toFixed(6));
+      const assetBase = symbol.split('/')[0].toUpperCase();
+
+      const usdtBalanceRaw = data.balances.find((b: any) => (b.asset || '').toString().toUpperCase() === "USDT")?.amount || 0;
+      const assetBalanceRaw = data.balances.find((b: any) => (b.asset || '').toString().toUpperCase() === assetBase)?.amount || 0;
+
+      const usdtNum = typeof usdtBalanceRaw === 'string' ? parseFloat(usdtBalanceRaw) : usdtBalanceRaw;
+      const assetNum = typeof assetBalanceRaw === 'string' ? parseFloat(assetBalanceRaw) : assetBalanceRaw;
+
+      setUsdtBalance(Number.isFinite(usdtNum) ? usdtNum.toFixed(2) : "0");
+      setAssetBalance(Number.isFinite(assetNum) ? assetNum.toFixed(6) : "0");
     } catch (err) {
       console.error("Failed to fetch balances:", err);
     }

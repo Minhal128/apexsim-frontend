@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import { createPortal } from 'react-dom';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import OrderBook from '@/components/trading/spot-trading/OrderBook';
 import TradeForm from '@/components/trading/spot-trading/TradeForm';
 import OrderTabs from '@/components/trading/spot-trading/TradingFooter';
@@ -19,6 +19,7 @@ interface CoinInfo {
 }
 
 function TradingPageContent() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<"chart" | "info">("chart");
   const searchParams = useSearchParams();
   const initialAsset = searchParams?.get('asset') || 'BTC/USDT';
@@ -192,6 +193,9 @@ function TradingPageContent() {
                         setDropdownOpen(false);
                         setSearchQuery('');
                         setMarketInfo(null);
+
+                        // Keep URL in sync so refresh/bookmarks keep the selected asset
+                        router.replace(`?asset=${coin.symbol.toUpperCase()}`);
                       }}
                       className={`w-full flex items-center gap-3 px-3 py-2.5 hover:bg-white/5 transition-colors ${
                         coin.id === selectedCoin.id ? 'bg-[#f0b90b]/10' : ''
