@@ -168,11 +168,11 @@ export default function TradeForm({ symbol = "BTC/USDT" }: TradeFormProps) {
         {/* Display selected asset icon and name */}
         <div className="ml-auto flex items-center gap-2">
           <img
-            src={`https://assets.coingecko.com/coins/images/${symbol.split('/')[0] === 'BTC' ? '1' : symbol.split('/')[0] === 'ETH' ? '279' : symbol.split('/')[0] === 'USDT' ? '325' : symbol.split('/')[0] === 'SOL' ? '4128' : '1'}/small/${symbol.split('/')[0].toLowerCase()}.png`}
+            src={`https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/${symbol.split('/')[0].toLowerCase()}.png`}
             alt={symbol.split('/')[0]}
             className="w-4 h-4 rounded-full object-contain"
             onError={(e) => {
-              e.currentTarget.src = 'https://assets.coingecko.com/coins/images/1/small/bitcoin.png';
+              e.currentTarget.src = '/images/bitcoin.png';
             }}
           />
           <span className="text-xs text-gray-400">{symbol}</span>
@@ -426,7 +426,7 @@ export default function TradeForm({ symbol = "BTC/USDT" }: TradeFormProps) {
             </div>
             <div className="flex justify-between text-[11px]">
               <span className="text-gray-500 border-b border-dotted border-gray-700">
-                BTC Balance
+                {assetBase} Balance
               </span>
               <span className="text-white font-medium">{assetBalance} {assetBase}</span>
             </div>

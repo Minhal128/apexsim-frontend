@@ -29,7 +29,7 @@ interface FutureTradingChartProps {
   onSizeChange?: (size: string) => void;
 }
 
-export default function FutureTradingChart({
+export default React.memo(function FutureTradingChart({
   activeView = "chart",
   symbol = "BTC/USDT",
   coinImage,
@@ -56,9 +56,9 @@ export default function FutureTradingChart({
   };
 
   return (
-    <div className="bg-[#181818] w-full h-full font-manrope flex flex-col overflow-hidden relative">
-      {activeView === "chart" ? (
-        <div className="flex-1 w-full relative">
+    <div className="bg-[#181818] w-full h-full font-manrope flex flex-col overflow-hidden">
+      <div className="grow relative overflow-hidden bg-[#181818]">
+        {activeView === "chart" && (
           <div className="w-full h-full">
             <AdvancedRealTimeChart
               theme="dark"
@@ -74,8 +74,8 @@ export default function FutureTradingChart({
               hide_side_toolbar={false}
             />
           </div>
-        </div>
-      ) : (
+        )}
+        {activeView === "info" && (
         <div className="absolute inset-0 h-full bg-[#181818] p-6 text-white z-[9999] overflow-y-auto">
           <div className="flex items-center gap-2 mb-2 border-b pb-5 border-b-white/5">
             <div className="h-7 w-7">
@@ -140,9 +140,16 @@ export default function FutureTradingChart({
           </div>
         </div>
       )}
+      </div>
     </div>
   );
-}
+}, (prev, next) => {
+  if (prev.activeView !== next.activeView || prev.symbol !== next.symbol) return false;
+  // If we are in "chart" view, we don't care if marketInfo changes, because it doesn't affect the chart!
+  if (next.activeView === "chart") return true;
+  // Otherwise, we do care
+  return prev.marketInfo === next.marketInfo;
+});
 
 const InfoRow = ({ label, value }: { label: string; value: string | React.ReactNode }) => (
   <div className="flex justify-between items-center py-1">

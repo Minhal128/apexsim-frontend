@@ -110,7 +110,7 @@ export default function TradingChart({
             <div className="flex items-center gap-2 mb-2 border-b pb-5 border-b-white/5">
               <div className="h-7 w-7">
                 {coinImage ? (
-                  <img src={coinImage} alt={coinName} className="w-7 h-7 rounded-full" />
+                  <img src={coinImage} alt={coinName} className="w-7 h-7 rounded-full" onError={(e) => { e.currentTarget.src = "/images/bitcoin.png"; }} />
                 ) : (
                   <img src="/images/bitcoin.png" alt="" />
                 )}

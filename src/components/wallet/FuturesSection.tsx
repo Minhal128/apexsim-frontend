@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import Link from "next/link";
 import { LuEye, LuSearch } from "react-icons/lu";
 import { FaCaretDown, FaFileAlt } from "react-icons/fa";
 import { PiCaretUpDownFill } from "react-icons/pi";
@@ -94,7 +95,12 @@ export default function FuturesSection() {
                                     <td className="py-4">{balance.toFixed(coin.symbol === 'BTC' ? 6 : 2)} {coin.symbol}</td>
                                     <td className="py-4">{balance.toFixed(coin.symbol === 'BTC' ? 6 : 2)}</td>
                                     <td className="py-4 text-right">
-                                        <button className="text-[#00B595] hover:underline">Trade</button>
+                                        <Link 
+                                            href={`/dashboard/futures-trade?asset=${coin.symbol}/USDT`}
+                                            className="text-[#00B595] hover:underline"
+                                        >
+                                            Trade
+                                        </Link>
                                     </td>
                                 </tr>
                             );

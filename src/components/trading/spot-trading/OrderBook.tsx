@@ -71,11 +71,11 @@ export default function OrderBook({ symbol = "BTC/USDT" }: { symbol?: string }) 
                 <div className="flex gap-2 h-full items-center">
                     {/* Display selected symbol */}
                     <img
-                        src={`https://assets.coingecko.com/coins/images/${symbol.split('/')[0] === 'BTC' ? '1' : symbol.split('/')[0] === 'ETH' ? '279' : symbol.split('/')[0] === 'USDT' ? '325' : symbol.split('/')[0] === 'SOL' ? '4128' : '1'}/small/${symbol.split('/')[0].toLowerCase()}.png`}
-                        alt={symbol.split('/')[0]}
-                        className="w-4 h-4 rounded-full object-contain"
-                        onError={(e) => {
-                            e.currentTarget.src = 'https://assets.coingecko.com/coins/images/1/small/bitcoin.png';
+                          src={`https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/${symbol.split('/')[0].toLowerCase()}.png`}
+                          alt={symbol.split('/')[0]}
+                          className="w-4 h-4 rounded-full object-contain"
+                          onError={(e) => {
+                              e.currentTarget.src = '/images/bitcoin.png';
                         }}
                     />
                     <span className="text-xs text-gray-400 font-medium">{symbol}</span>
@@ -140,9 +140,9 @@ export default function OrderBook({ symbol = "BTC/USDT" }: { symbol?: string }) 
             {activeTab === 'liquidity' ? (
                 <>
                     <div className="grid grid-cols-3 text-[10px] text-gray-500 px-3 pb-1 uppercase font-medium">
-                        <span>Price(USDT)</span>
-                        <span className="text-right">Amount(BTC)</span>
-                        <span className="text-right">Total</span>
+                          <span>Price({symbol.split('/')[1] || 'USDT'})</span>
+                          <span className="text-right">Amount({symbol.split('/')[0]})</span>
+                          <span className="text-right">Total</span>
                     </div>
 
                     <div className="grow overflow-y-auto no-scrollbar pb-2">
@@ -173,9 +173,9 @@ export default function OrderBook({ symbol = "BTC/USDT" }: { symbol?: string }) 
             ) : (
                 <>
                     <div className="grid grid-cols-3 text-[10px] text-gray-500 px-3 pb-1 uppercase font-medium">
-                        <span>Price(USDT)</span>
-                        <span className="text-right">Amount(BTC)</span>
-                        <span className="text-right">Time</span>
+                          <span>Price({symbol.split('/')[1] || 'USDT'})</span>
+                          <span className="text-right">Amount({symbol.split('/')[0]})</span>
+                          <span className="text-right">Time</span>
                     </div>
 
                     <div className="grow overflow-y-auto no-scrollbar pb-2">

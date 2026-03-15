@@ -253,7 +253,7 @@ export default function TradeForm({ symbol = "BTC/USDT", balance, onSizeChange, 
             {tab === "Close" && positions.length > 0 && (
                 <div className="space-y-3">
                     <div className="bg-[#24262b] p-2 rounded text-sm">
-                        <p className="text-gray-400">Current Position: {positions.find(p => p.symbol === symbol)?.quantity || 0} BTC</p>
+                          <p className="text-gray-400">Current Position: {positions.find(p => p.symbol === symbol)?.quantity || 0} {symbol.split('/')[0]}</p>
                     </div>
                     <div className="relative">
                         <input

@@ -125,12 +125,12 @@ export default function CoinSelector({ isOpen, onClose, onSelect, currentAsset }
                   className={`flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all hover:bg-white/5 ${currentAsset.includes(coin.symbol) ? 'bg-[#00B595]/10 border border-[#00B595]/20' : 'border border-transparent'}`}
                 >
                   <div className="flex items-center gap-3">
-                    <img 
-                      src={coin.image} 
-                      alt={coin.symbol} 
+                    <img
+                      src={coin.image}
+                      alt={coin.symbol}
                       className="w-8 h-8 rounded-full bg-gray-800"
                       onError={(e) => {
-                        e.currentTarget.src = "https://assets.coingecko.com/coins/images/1/small/bitcoin.png";
+                        e.currentTarget.src = "/images/bitcoin.png";
                       }}
                     />
                     <div>

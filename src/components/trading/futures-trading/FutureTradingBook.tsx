@@ -179,7 +179,7 @@ export default function FutureTradingBook({ symbol = "BTC/USDT", currentPrice }:
             {activeTab === 'Order books' ? (
                 <>
                     <div className="grid grid-cols-3 text-[10px] text-gray-500 px-3 pb-1 font-medium border-b border-white/5 lg:border-none">
-                        <span>Price(USDT)</span>
+                          <span>Price({symbol.split('/')[1] || 'USDT'})</span>
                         <span className="text-right">Amount({asset})</span>
                         <span className="text-right">Total</span>
                     </div>
@@ -213,7 +213,7 @@ export default function FutureTradingBook({ symbol = "BTC/USDT", currentPrice }:
             ) : (
                 <>
                     <div className="grid grid-cols-3 text-[10px] text-gray-500 px-3 pb-1 uppercase font-medium border-b border-white/5 lg:border-none">
-                        <span>Price(USDT)</span>
+                          <span>Price({symbol.split('/')[1] || 'USDT'})</span>
                         <span className="text-right">Amount({asset})</span>
                         <span className="text-right">Time</span>
                     </div>

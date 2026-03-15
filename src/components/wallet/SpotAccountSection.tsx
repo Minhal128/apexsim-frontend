@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import Link from "next/link";
 import { LuEye, LuSearch } from "react-icons/lu";
 import { FaCaretDown } from "react-icons/fa";
 import { PiCaretUpDownFill } from "react-icons/pi";
@@ -112,8 +113,18 @@ export default function FundsOverview() {
                                     </td>
                                     <td className="py-4">{balance.toFixed(coin.symbol === 'BTC' ? 6 : 2)}</td>
                                     <td className="py-4 text-right">
-                                        <button className="text-[#00B595] hover:underline mr-4">Deposit</button>
-                                        <button className="text-[#00B595] hover:underline">Withdraw</button>
+                                        <Link 
+                                            href={`/dashboard/deposit`}
+                                            className="text-[#00B595] hover:underline mr-4"
+                                        >
+                                            Deposit
+                                        </Link>
+                                        <Link 
+                                            href={`/dashboard/spot-trade?asset=${coin.symbol}/USDT`}
+                                            className="text-[#00B595] hover:underline"
+                                        >
+                                            Trade
+                                        </Link>
                                     </td>
                                 </tr>
                             );

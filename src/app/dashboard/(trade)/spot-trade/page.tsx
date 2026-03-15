@@ -139,7 +139,7 @@ function TradingPageContent() {
               src={selectedCoin.image}
               alt={selectedCoin.name}
               className="md:w-7 md:h-7 w-5 h-5 rounded-full"
-              onError={(e) => { e.currentTarget.src = 'https://assets.coingecko.com/coins/images/1/small/bitcoin.png'; }}
+              onError={(e) => { e.currentTarget.src = `https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/${selectedCoin.symbol.toLowerCase()}.png`; }}
             />
             <div className="flex flex-col items-start">
               <span className="text-white md:text-sm text-xs font-bold leading-none">
@@ -205,7 +205,7 @@ function TradingPageContent() {
                         src={coin.image}
                         alt={coin.name}
                         className="w-8 h-8 rounded-full flex-shrink-0"
-                        onError={(e) => { e.currentTarget.src = 'https://assets.coingecko.com/coins/images/1/small/bitcoin.png'; }}
+                        onError={(e) => { e.currentTarget.src = `https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/${coin.symbol.toLowerCase()}.png`; }}
                       />
                       <div className="flex flex-col items-start flex-1 min-w-0">
                         <span className="text-white text-sm font-semibold leading-tight">
@@ -293,7 +293,7 @@ function TradingPageContent() {
           </div>
         </div>
 
-        <OrderBook />
+        <OrderBook symbol={assetSymbol} />
         <TradeForm symbol={assetSymbol} />
       </div>
 

@@ -103,8 +103,7 @@ function FutureTradingPageContent() {
       'SOL': '4128',
     };
     const id = idMapping[symbol];
-    if (id) return `https://assets.coingecko.com/coins/images/${id}/small/${mapping[symbol] || symbol.toLowerCase()}.png`;
-    return `https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/${symbol.toLowerCase()}.png`;
+
   };
 
   const [walletInfo, setWalletInfo] = useState<any>({

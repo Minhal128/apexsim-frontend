@@ -75,7 +75,6 @@ export default function Navbar() {
         // menu items can be toggled later by role
         const items = [
           availableMenuItems["Deposit"],
-          availableMenuItems["Withdraw"],
           availableMenuItems["Market"],
           availableMenuItems["Futures"],
         ];
@@ -147,20 +146,33 @@ export default function Navbar() {
           </Link>
 
           <div className="hidden md:flex items-center gap-8 ml-40">
-            {activeMenuItems.map((item) => (
-              <Link
-                key={item.label}
-                href={item.href || "#"}
-
-                className="text-gray-400 hover:text-white transition-colors text-sm font-medium font-manrope"
-              >
-                {item.label}
-              </Link>
-            ))}
+            {activeMenuItems.map((item) =>
+              item.href ? (
+                <Link
+                  key={item.label}
+                  href={item.href}
+                  className="text-gray-400 hover:text-white transition-colors text-sm font-medium font-manrope"
+                >
+                  {item.label}
+                </Link>
+              ) : (
+                <button
+                  key={item.label}
+                  onClick={() => {
+                    if (item.label === 'Withdraw') setIsWithdrawOpen(true);
+                    else if (item.label === 'Support') setIsSupportOpen(true);
+                    else item.onClick?.();
+                  }}
+                  className="text-gray-400 hover:text-white transition-colors text-sm font-medium font-manrope"
+                >
+                  {item.label}
+                </button>
+              )
+            )}
 
             <button
               onClick={() => setIsWithdrawOpen(true)}
-              className="flex items-center gap-1 text-gray-400 hover:text-white text-sm font-medium"
+              className="group flex items-center gap-1 text-gray-400 hover:text-white transition-colors text-sm font-medium font-manrope"
             >
               Withdraw
             </button>
@@ -362,9 +374,19 @@ export default function Navbar() {
               )
             )}
 
+            <button
+              onClick={() => {
+                closeMobileMenu();
+                setIsWithdrawOpen(true);
+              }}
+              className="text-gray-300 text-lg py-4 px-2 border-b border-white/5 hover:text-white cursor-pointer transition-colors font-manrope text-left"
+            >
+              Withdraw
+            </button>
+
             <div className="py-2">
-              <NavItem 
-                label="Trade" 
+              <NavItem
+                label="Trade"
                 type="trade" 
                 isMobile={true}
                 onItemClick={closeMobileMenu}
