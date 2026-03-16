@@ -23,9 +23,11 @@ export default function FundsOverview() {
         fetchWallet();
 
         const socket = getSocket();
+        let handleWalletUpdate: any = null;
+
         if (socket) {
-            socket.on('wallet-update', (eventData: any) => {
-                // If we know user ID we should check it, but here we can just refetch 
+            handleWalletUpdate = (eventData: any) => {
+                // If we know user ID we should check it, but here we can just refetch
                 // or just assume we should wait/check. Wait, if we use eventData.wallet
                 // we can just set it. But how do we know it's our wallet?
                 // By fetching profile? Let's just do a fetchWallet() on any update.
@@ -35,10 +37,11 @@ export default function FundsOverview() {
                         setWalletData(eventData.wallet);
                     }
                 }).catch(() => {});
-            });
+            };
+            socket.on('wallet-update', handleWalletUpdate);
         }
         return () => {
-            if (socket) socket.off('wallet-update');
+            if (socket && handleWalletUpdate) socket.off('wallet-update', handleWalletUpdate);
         };
     }, []);
 

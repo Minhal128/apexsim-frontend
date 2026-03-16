@@ -23,17 +23,20 @@ export default function FuturesSection() {
         fetchWallet();
 
         const socket = getSocket();
+        let handleWalletUpdate: any = null;
+
         if (socket) {
-            socket.on('wallet-update', (eventData: any) => {
+            handleWalletUpdate = (eventData: any) => {
                 apiRequest('/profile/me').then(user => {
                     if (eventData.userId === user._id) {
                         setWalletData(eventData.wallet);
                     }
                 }).catch(() => {});
-            });
+            };
+            socket.on('wallet-update', handleWalletUpdate);
         }
         return () => {
-            if (socket) socket.off('wallet-update');
+            if (socket && handleWalletUpdate) socket.off('wallet-update', handleWalletUpdate);
         };
     }, []);
 

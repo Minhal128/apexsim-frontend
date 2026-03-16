@@ -83,15 +83,22 @@ export default function Navbar() {
         
         // Listen to wallet updates instantly
         const socket = getSocket();
+        
+        const handleWalletUpdate = (eventData: any) => {
+          if (eventData.userId === data._id) {
+            setUserProfile((prev: any) => {
+              if (!prev) return prev;
+              return { ...prev, wallet: eventData.wallet };
+            });
+          }
+        };
+
         if (socket) {
-          socket.on('wallet-update', (eventData: any) => {
-            if (eventData.userId === data._id) {
-              setUserProfile((prev: any) => {
-                if (!prev) return prev;
-                return { ...prev, wallet: eventData.wallet };
-              });
-            }
-          });
+          socket.on('wallet-update', handleWalletUpdate);
+          
+          return () => {
+            socket.off('wallet-update', handleWalletUpdate);
+          };
         }
       } catch (err) {
         console.error("Failed to fetch profile:", err);
@@ -106,13 +113,6 @@ export default function Navbar() {
     };
 
     fetchProfile();
-
-    return () => {
-      const socket = getSocket();
-      if (socket) {
-        socket.off('wallet-update');
-      }
-    };
   }, []);
 
   const getDisplayName = () => {
