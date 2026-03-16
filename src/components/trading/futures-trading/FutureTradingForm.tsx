@@ -70,7 +70,8 @@ export default function TradeForm({ symbol = "BTC/USDT", balance, onSizeChange, 
         
         const handleWalletUpdate = (data: any) => {
             if (userId && data.userId === userId) {
-                const usdt = data.wallet.futuresBalances?.find((b: any) => b.asset === "USDT")?.amount || 0;
+                const balancesArray = data.wallet?.futuresBalances || data.futuresBalances || [];
+                const usdt = balancesArray.find((b: any) => b.asset === "USDT")?.amount || 0;
                 setUsdtBalance(usdt.toFixed(2));
             }
         };
@@ -85,7 +86,8 @@ export default function TradeForm({ symbol = "BTC/USDT", balance, onSizeChange, 
     const fetchBalance = async () => {
         try {
             const data = await apiRequest("/wallet");
-            const usdt = data.futuresBalances?.find((b: any) => b.asset === "USDT")?.amount || 0;
+            const balancesArray = data.wallet?.futuresBalances || data.futuresBalances || [];
+            const usdt = balancesArray.find((b: any) => b.asset === "USDT")?.amount || 0;
             setUsdtBalance(usdt.toFixed(2));
             if (usdt === 0 && !globalHasWarnedEmptyWallet) {
                 globalHasWarnedEmptyWallet = true;

@@ -18,6 +18,8 @@ const coinIcons: Record<string, string> = {
 export default function FuturesSection() {
     const [walletData, setWalletData] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+    const [selectedCoin, setSelectedCoin] = useState("USDT");
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
     useEffect(() => {
         fetchWallet();
@@ -62,7 +64,7 @@ export default function FuturesSection() {
         { symbol: "SOL", name: "Solana" },
     ];
 
-    const totalBtc = getBalance('BTC');
+    const currentBalance = getBalance(selectedCoin);
 
     return (
         <div className="min-h-screen bg-[#1D1D1D] text-white font-manrope px-4 sm:px-6 md:px-8">
@@ -73,10 +75,32 @@ export default function FuturesSection() {
                             <span>Valuation</span>
                             <LuEye className="cursor-pointer text-white" size={14} />
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 relative">
                             <h1 className="text-2xl sm:text-3xl md:text-4xl font-semibold tracking-tight">
-                                {loading ? "Loading..." : `${totalBtc.toFixed(6)} BTC`}
+                                {loading ? "Loading..." : `${currentBalance.toFixed(selectedCoin === 'USDT' ? 2 : 6)} ${selectedCoin}`}
                             </h1>
+                            <span 
+                                className="text-gray-400 p-1 bg-[#252525] rounded-sm cursor-pointer hover:bg-[#333]"
+                                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                            >
+                                <FaCaretDown size={12} />
+                            </span>
+                            {isDropdownOpen && (
+                                <div className="absolute top-12 left-0 w-32 bg-[#252525] rounded-sm shadow-lg z-50 overflow-hidden">
+                                    {assets.map((asset) => (
+                                        <div 
+                                            key={asset.symbol}
+                                            className="px-4 py-2 hover:bg-white/10 cursor-pointer text-sm font-semibold"
+                                            onClick={() => {
+                                                setSelectedCoin(asset.symbol);
+                                                setIsDropdownOpen(false);
+                                            }}
+                                        >
+                                            {asset.symbol}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
