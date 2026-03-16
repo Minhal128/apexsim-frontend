@@ -90,7 +90,7 @@ export default function TransferModal({ open, onClose }: Props) {
 
   const availableBalance = getBalance(asset);
 
-  const FormContent = () => (
+  const formContent = (
     <form onSubmit={handleSubmit} className="flex flex-col gap-5 mt-4">
       {/* From */}
       <div>
@@ -191,7 +191,7 @@ export default function TransferModal({ open, onClose }: Props) {
           <button onClick={onClose} className="absolute top-4 right-5 text-gray-400"><X size={22} /></button>
           <h2 className="text-lg font-semibold font-manrope">Transfer</h2>
           <p className="text-xs text-gray-500 mt-1">Move funds between your accounts</p>
-          <FormContent />
+          {formContent}
         </div>
       </div>
 
@@ -201,7 +201,7 @@ export default function TransferModal({ open, onClose }: Props) {
           <button onClick={onClose} className="absolute top-5 right-5 text-gray-400 hover:text-white"><X size={22} /></button>
           <h2 className="text-lg font-semibold font-manrope">Transfer</h2>
           <p className="text-xs text-gray-500 mt-1">Move funds between your accounts</p>
-          <FormContent />
+          {formContent}
         </div>
       </div>
     </>
