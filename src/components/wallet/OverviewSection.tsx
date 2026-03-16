@@ -31,10 +31,14 @@ export default function Overview() {
     const balance = walletData?.balances?.find((b: any) => b.asset === asset);
     return balance ? balance.amount.toFixed(6) : "0.000000";
   };
+  const getFuturesBalance = (asset: string) => {
+    const balance = walletData?.futuresBalances?.find((b: any) => b.asset === asset);
+    return balance ? balance.amount.toFixed(6) : "0.000000";
+  };
 
   const assets = [
     { name: "Spot Account", image: "/images/iconone.png", quantity: `${getBalance('BTC')} BTC` },
-    { name: "Futures Account", image: "/images/icontwo.png", quantity: `${getBalance('USDT')} USDT` }, // Assuming USDT for futures/bot for now
+    { name: "Futures Account", image: "/images/icontwo.png", quantity: `${getFuturesBalance('USDT')} USDT` }, // Assuming USDT for futures/bot for now
     { name: "Bot Account", image: "/images/iconthree.png", quantity: `${getBalance('ETH')} ETH` },
   ];
 

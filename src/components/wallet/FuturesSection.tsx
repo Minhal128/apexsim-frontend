@@ -34,7 +34,7 @@ export default function FuturesSection() {
     };
 
     const getBalance = (symbol: string) => {
-        return walletData?.balances?.find((b: any) => b.asset === symbol)?.amount || 0;
+        return walletData?.futuresBalances?.find((b: any) => b.asset === symbol)?.amount || 0;
     };
 
     const assets = [

@@ -59,14 +59,14 @@ export default function TradeForm({ symbol = "BTC/USDT", balance, onSizeChange, 
     }, [balance]);
 
     const fetchBalance = async () => {
-        if (balance && balance !== "0.00") {
-            setUsdtBalance(balance);
-            return;
-        }
         try {
             const data = await apiRequest("/wallet");
-            const usdt = data.balances?.find((b: any) => b.asset === "USDT")?.amount || 0;
+            const usdt = data.futuresBalances?.find((b: any) => b.asset === "USDT")?.amount || 0;
             setUsdtBalance(usdt.toFixed(2));
+            if (usdt === 0) {
+                toast.addToast("Your futures wallet is empty. Please transfer money from your Spot wallet.", "warning");
+                setShowTransfer(true); // Optional: if you have a transfer modal
+            }
         } catch (err) {
             console.error("Failed to fetch balance:", err);
         }
