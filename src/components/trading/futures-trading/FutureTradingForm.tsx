@@ -24,6 +24,8 @@ interface FutureTradingFormProps {
     currentPrice?: number;
 }
 
+let globalHasWarnedEmptyWallet = false;
+
 export default function TradeForm({ symbol = "BTC/USDT", balance, onSizeChange, externalSize, currentPrice }: FutureTradingFormProps) {
     const toast = useToast();
     const router = useRouter();
@@ -40,7 +42,6 @@ export default function TradeForm({ symbol = "BTC/USDT", balance, onSizeChange, 
     const [usdtBalance, setUsdtBalance] = useState("0");
     const [userId, setUserId] = useState<string | null>(null);
     const [loadingAction, setLoadingAction] = useState<"long" | "short" | "close" | null>(null);
-    const hasWarnedEmptyWallet = useRef(false);
 
     useEffect(() => {
         apiRequest('/profile/me').then(data => setUserId(data._id)).catch(console.error);
@@ -86,8 +87,8 @@ export default function TradeForm({ symbol = "BTC/USDT", balance, onSizeChange, 
             const data = await apiRequest("/wallet");
             const usdt = data.futuresBalances?.find((b: any) => b.asset === "USDT")?.amount || 0;
             setUsdtBalance(usdt.toFixed(2));
-            if (usdt === 0 && !hasWarnedEmptyWallet.current) {
-                hasWarnedEmptyWallet.current = true;
+            if (usdt === 0 && !globalHasWarnedEmptyWallet) {
+                globalHasWarnedEmptyWallet = true;
                 toast.addToast("Your futures wallet is empty. Please transfer money from your Spot wallet.", "warning");
                 setShowTransfer(true); // Optional: if you have a transfer modal
             }
