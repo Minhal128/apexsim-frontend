@@ -4,6 +4,7 @@ import { LuEye, LuSearch } from "react-icons/lu";
 import { FaCaretDown, FaFileAlt } from "react-icons/fa";
 import { PiCaretUpDownFill } from "react-icons/pi";
 import { apiRequest } from "@/lib/api";
+import { getSocket } from "@/lib/socket";
 
 const coinIcons: Record<string, string> = {
     BTC: "/images/bitcoin.png",
@@ -20,6 +21,20 @@ export default function FuturesSection() {
 
     useEffect(() => {
         fetchWallet();
+
+        const socket = getSocket();
+        if (socket) {
+            socket.on('wallet-update', (eventData: any) => {
+                apiRequest('/profile/me').then(user => {
+                    if (eventData.userId === user._id) {
+                        setWalletData(eventData.wallet);
+                    }
+                }).catch(() => {});
+            });
+        }
+        return () => {
+            if (socket) socket.off('wallet-update');
+        };
     }, []);
 
     const fetchWallet = async () => {

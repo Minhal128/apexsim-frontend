@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { LuEye } from "react-icons/lu";
 import { FaCaretDown } from "react-icons/fa";
 import { apiRequest } from "@/lib/api";
+import { getSocket } from "@/lib/socket";
 
 export default function Overview() {
   const [walletData, setWalletData] = useState<any>(null);
@@ -10,6 +11,20 @@ export default function Overview() {
 
   useEffect(() => {
     fetchData();
+
+    const socket = getSocket();
+    if (socket) {
+        socket.on('wallet-update', (eventData: any) => {
+            apiRequest('/profile/me').then(user => {
+                if (eventData.userId === user._id) {
+                    setWalletData(eventData.wallet);
+                }
+            }).catch(() => {});
+        });
+    }
+    return () => {
+        if (socket) socket.off('wallet-update');
+    };
   }, []);
 
   const fetchData = async () => {

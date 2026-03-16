@@ -7,6 +7,7 @@ import NavItem from "./NavDropDownItems";
 import SupportFAQModal from "./SupportModel";
 import WithdrawModal from "./WithdrawModel";
 import { apiRequest } from "@/lib/api";
+import { getSocket } from "@/lib/socket";
 
 const languages = [
   { code: "Eng", name: "English", flag: "https://flagcdn.com/us.svg" },
@@ -79,6 +80,19 @@ export default function Navbar() {
           availableMenuItems["Futures"],
         ];
         setActiveMenuItems(items);
+        
+        // Listen to wallet updates instantly
+        const socket = getSocket();
+        if (socket) {
+          socket.on('wallet-update', (eventData: any) => {
+            if (eventData.userId === data._id) {
+              setUserProfile((prev: any) => {
+                if (!prev) return prev;
+                return { ...prev, wallet: eventData.wallet };
+              });
+            }
+          });
+        }
       } catch (err) {
         console.error("Failed to fetch profile:", err);
         const items = [
@@ -92,6 +106,13 @@ export default function Navbar() {
     };
 
     fetchProfile();
+
+    return () => {
+      const socket = getSocket();
+      if (socket) {
+        socket.off('wallet-update');
+      }
+    };
   }, []);
 
   const getDisplayName = () => {

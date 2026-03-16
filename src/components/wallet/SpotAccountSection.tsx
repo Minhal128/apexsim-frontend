@@ -4,6 +4,7 @@ import { LuEye, LuSearch } from "react-icons/lu";
 import { FaCaretDown } from "react-icons/fa";
 import { PiCaretUpDownFill } from "react-icons/pi";
 import { apiRequest } from "@/lib/api";
+import { getSocket } from "@/lib/socket";
 
 const coinIcons: Record<string, string> = {
     BTC: "/images/bitcoin.png",
@@ -20,6 +21,25 @@ export default function FundsOverview() {
 
     useEffect(() => {
         fetchWallet();
+
+        const socket = getSocket();
+        if (socket) {
+            socket.on('wallet-update', (eventData: any) => {
+                // If we know user ID we should check it, but here we can just refetch 
+                // or just assume we should wait/check. Wait, if we use eventData.wallet
+                // we can just set it. But how do we know it's our wallet?
+                // By fetching profile? Let's just do a fetchWallet() on any update.
+                // Or better: get user ID and check.
+                apiRequest('/profile/me').then(user => {
+                    if (eventData.userId === user._id) {
+                        setWalletData(eventData.wallet);
+                    }
+                }).catch(() => {});
+            });
+        }
+        return () => {
+            if (socket) socket.off('wallet-update');
+        };
     }, []);
 
     const fetchWallet = async () => {

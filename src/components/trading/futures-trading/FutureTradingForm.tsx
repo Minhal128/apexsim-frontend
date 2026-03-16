@@ -9,6 +9,7 @@ import PreferenceModal from './PreferenceModel';
 import LeverageModal from './LeverageModel';
 import MarginModeModal from './MarginModeModel';
 import { apiRequest } from "@/lib/api";
+import { getSocket } from "@/lib/socket";
 import { useToast } from "@/components/ToastContext";
 import { useRouter } from 'next/navigation';
 import TransferModal from '@/components/wallet/TransferModal';
@@ -37,7 +38,12 @@ export default function TradeForm({ symbol = "BTC/USDT", balance, onSizeChange, 
     const [size, setSize] = useState("");
     const [total, setTotal] = useState("");
     const [usdtBalance, setUsdtBalance] = useState("0");
+    const [userId, setUserId] = useState<string | null>(null);
     const [loadingAction, setLoadingAction] = useState<"long" | "short" | "close" | null>(null);
+
+    useEffect(() => {
+        apiRequest('/profile/me').then(data => setUserId(data._id)).catch(console.error);
+    }, []);
     const [positions, setPositions] = useState<any[]>([]);
 
     const [isLeverageOpen, setIsLeverageOpen] = useState(false);
@@ -56,7 +62,23 @@ export default function TradeForm({ symbol = "BTC/USDT", balance, onSizeChange, 
     useEffect(() => {
         fetchBalance();
         fetchPositions();
-    }, [balance]);
+
+        const socket = getSocket();
+        if (!socket) return;
+        
+        const handleWalletUpdate = (data: any) => {
+            if (userId && data.userId === userId) {
+                const usdt = data.wallet.futuresBalances?.find((b: any) => b.asset === "USDT")?.amount || 0;
+                setUsdtBalance(usdt.toFixed(2));
+            }
+        };
+        
+        socket.on('wallet-update', handleWalletUpdate);
+        
+        return () => {
+            socket.off('wallet-update', handleWalletUpdate);
+        };
+    }, [balance, userId]);
 
     const fetchBalance = async () => {
         try {

@@ -27,6 +27,11 @@ export default function TradeForm({ symbol = "BTC/USDT" }: TradeFormProps) {
   const assetBase = symbol.split('/')[0];
   const [usdtBalance, setUsdtBalance] = useState("0");
   const [assetBalance, setAssetBalance] = useState("0");
+  const [userId, setUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    apiRequest('/profile/me').then(data => setUserId(data._id)).catch(console.error);
+  }, []);
   const [loading, setLoading] = useState(false);
 
   const fetchBalances = async () => {
@@ -79,12 +84,28 @@ export default function TradeForm({ symbol = "BTC/USDT" }: TradeFormProps) {
         }
     };
 
+    const handleWalletUpdate = (data: any) => {
+        if (userId && data.userId === userId) {
+            const walletData = data.wallet;
+            const usdtBalanceRaw = walletData.balances.find((b: any) => (b.asset || '').toString().toUpperCase() === "USDT")?.amount || 0;
+            const assetBalanceRaw = walletData.balances.find((b: any) => (b.asset || '').toString().toUpperCase() === assetBase)?.amount || 0;
+            
+            const usdtNum = typeof usdtBalanceRaw === 'string' ? parseFloat(usdtBalanceRaw) : usdtBalanceRaw;
+            const assetNum = typeof assetBalanceRaw === 'string' ? parseFloat(assetBalanceRaw) : assetBalanceRaw;
+            
+            setUsdtBalance(Number.isFinite(usdtNum) ? usdtNum.toFixed(2) : "0");
+            setAssetBalance(Number.isFinite(assetNum) ? assetNum.toFixed(6) : "0");
+        }
+    };
+
     socket.on('market-update', handleMarketUpdate);
+    socket.on('wallet-update', handleWalletUpdate);
 
     return () => {
         socket.off('market-update', handleMarketUpdate);
+        socket.off('wallet-update', handleWalletUpdate);
     };
-  }, [symbol]);
+  }, [symbol, userId]);
 
   // Sync total when price or amount changes
   useEffect(() => {
