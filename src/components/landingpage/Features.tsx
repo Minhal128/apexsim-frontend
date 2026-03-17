@@ -1,5 +1,6 @@
 "use client";
 import React from "react";
+import Link from "next/link";
 import { motion } from "framer-motion";
 
 interface FeatureCardProps {
@@ -111,9 +112,12 @@ export default function Features() {
               <h3 className="text-white text-lg mb-8 relative z-10">
                 And of course more...
               </h3>
-              <button className="bg-white text-[#0055FF] px-10 py-3.5 rounded-full font-bold text-sm shadow-xl hover:scale-105 active:scale-95 transition-all cursor-pointer relative z-10">
+              <Link
+                href="/login"
+                className="bg-white text-[#0055FF] px-10 py-3.5 rounded-full font-bold text-sm shadow-xl hover:scale-105 active:scale-95 transition-all cursor-pointer relative z-10"
+              >
                 Start trading
-              </button>
+              </Link>
               <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
             </motion.div>
 
