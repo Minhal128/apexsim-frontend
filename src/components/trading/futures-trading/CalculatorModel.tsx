@@ -85,24 +85,21 @@ export default function TradingCalculator({ isOpen, onClose }: Props) {
             <div className="space-y-1.5">
               <label className="text-[12px] text-gray-400">Entry price</label>
               <div className="relative">
-                <input placeholder="Please enter" className="w-full bg-[#181B1F] border border-transparent rounded p-3 text-sm outline-none  text-white placeholder:text-gray-600" />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[12px] font-bold text-gray-400">USDT</span>
+                <input placeholder="Please enter (USDT)" className="w-full bg-[#181B1F] border border-transparent rounded p-3 text-sm outline-none  text-white placeholder:text-gray-600" />
               </div>
             </div>
 
             <div className="space-y-1.5">
               <label className="text-[12px] text-gray-400">Target price</label>
               <div className="relative">
-                <input placeholder="Please enter" className="w-full bg-[#181B1F] border border-transparent rounded p-3 text-sm outline-none  text-white placeholder:text-gray-600" />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[12px] font-bold text-gray-400">USDT</span>
+                <input placeholder="Please enter (USDT)" className="w-full bg-[#181B1F] border border-transparent rounded p-3 text-sm outline-none  text-white placeholder:text-gray-600" />
               </div>
             </div>
 
             <div className="space-y-1.5">
               <label className="text-[12px] text-gray-400">Size</label>
               <div className="relative">
-                <input placeholder="Please enter" className="w-full bg-[#181B1F] border border-transparent rounded p-3 text-sm outline-none  text-white placeholder:text-gray-600" />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[12px] font-bold text-gray-400">BNB</span>
+                <input placeholder="Please enter (BNB)" className="w-full bg-[#181B1F] border border-transparent rounded p-3 text-sm outline-none  text-white placeholder:text-gray-600" />
               </div>
             </div>
           </div>

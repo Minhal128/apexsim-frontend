@@ -58,7 +58,7 @@ export default function TradeForm({ symbol = "BTC/USDT" }: TradeFormProps) {
       const assetBase = symbol.split('/')[0];
       const fetchedPrice = prices[assetBase]?.usd || 0;
       if (fetchedPrice > 0) {
-        setPrice((prev) => prev === "0.00" ? fetchedPrice.toString() : prev);
+        setPrice(fetchedPrice.toString());
         setCurrentMarketPrice(fetchedPrice.toString());
       }
     } catch (err) {
@@ -69,6 +69,8 @@ export default function TradeForm({ symbol = "BTC/USDT" }: TradeFormProps) {
   useEffect(() => {
     fetchBalances();
     fetchMarketPrice();
+    setAmount("");
+    setTotal("");
 
     const socket = initializeSocket();
     if (!socket) return;
@@ -260,28 +262,22 @@ export default function TradeForm({ symbol = "BTC/USDT" }: TradeFormProps) {
               {/* Price Field */}
               <div className="relative group">
                 <input
-                  placeholder="Price"
+                  placeholder={`Price (${symbol.split('/')[1] || "USDT"})`}
                   type="text"
                   value={price}
                   onChange={(e) => setPrice(e.target.value)}
-                  className="w-full bg-[#181B1F] border border-white/10 rounded-md p-2.5  text-white text-sm outline-none focus:border-[#3b82f6]"
+                  className="w-full bg-[#181B1F] border border-white/10 rounded-md p-2.5 text-white text-sm outline-none focus:border-[#3b82f6]"
                 />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[16px] text-gray-300">
-                  USDT {price}
-                </span>
               </div>
               {/* Amount Field */}
               <div className="relative group">
                 <input
-                  placeholder="Amount"
+                  placeholder={`Amount (${symbol.split('/')[0]})`}
                   type="number"
                   value={amount}
                   onChange={(e) => handleAmountChange(e.target.value)}
                   className="w-full bg-[#181B1F] border border-white/10 rounded-md p-2.5 text-white text-sm outline-none focus:border-[#3b82f6]"
                 />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[16px] text-gray-300">
-                  {symbol.split('/')[0]}
-                </span>
               </div>
             </>
           )}
@@ -290,24 +286,21 @@ export default function TradeForm({ symbol = "BTC/USDT" }: TradeFormProps) {
             <div className="flex flex-col gap-3">
               <div className="relative group">
                 <input
-                  placeholder="Price"
+                  placeholder="Market Price"
                   type="text"
-                  value={`Market Price (~${currentMarketPrice})`}
+                  value={`~${currentMarketPrice} ${symbol.split('/')[1] || "USDT"}`}
                   readOnly
                   className="w-full bg-[#181B1F]/50 border border-white/5 rounded-md p-2.5 text-gray-500 text-sm outline-none cursor-not-allowed"
                 />
               </div>
               <div className="relative group">
                 <input
-                  placeholder="Amount"
+                  placeholder={`Amount (${symbol.split('/')[0]})`}
                   type="number"
                   value={amount}
                   onChange={(e) => handleAmountChange(e.target.value)}
                   className="w-full bg-[#181B1F] border border-white/10 rounded-md p-2.5 text-white text-sm outline-none focus:border-[#3b82f6]"
                 />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[16px] text-gray-300">
-                  {symbol.split('/')[0]}
-                </span>
               </div>
             </div>
           )}

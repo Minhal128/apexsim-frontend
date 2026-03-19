@@ -103,7 +103,13 @@ export default function TradeForm({ symbol = "BTC/USDT", balance, onSizeChange, 
         if (currentPrice && !price && orderType !== "Market order") {
             setPrice(currentPrice.toString());
         }
-    }, [currentPrice, orderType]);
+    }, [currentPrice, orderType, price]);
+
+    useEffect(() => {
+        // Reset price and size when symbol changes
+        setPrice(currentPrice ? currentPrice.toString() : "");
+        setSize("");
+    }, [symbol]);
 
     useEffect(() => {
         if (externalSize !== undefined) {
@@ -256,23 +262,21 @@ export default function TradeForm({ symbol = "BTC/USDT", balance, onSizeChange, 
                     <div className="relative">
                         <input
                             type="text"
-                            placeholder={orderType === "Market order" ? "Market Price" : "Price"}
+                            placeholder={orderType === "Market order" ? "Market Price" : `Price (${symbol.split('/')[1] || "USDT"})`}
                             value={orderType === "Market order" ? "" : price}
                             disabled={orderType === "Market order"}
                             onChange={(e) => setPrice(e.target.value)}
                             className={`w-full bg-[#1E2023] border border-white/5 rounded-md p-2.5 text-sm outline-none focus:border-[#00B595] ${orderType === "Market order" ? "opacity-50 cursor-not-allowed" : ""}`}
                         />
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[12px] text-gray-500">USDT</span>
                     </div>
                     <div className="relative">
                         <input
                             type="text"
-                            placeholder='Size'
+                            placeholder={`Size (${symbol.split('/')[0]})`}
                             value={size}
                             onChange={(e) => setSize(e.target.value)}
                             className="w-full bg-[#1E2023] border border-white/5 rounded-md p-2.5 text-sm outline-none focus:border-[#00B595]"
                         />
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[12px] text-gray-500">{symbol.split('/')[0]}</span>
                     </div>
                 </div>
             )}
@@ -285,22 +289,20 @@ export default function TradeForm({ symbol = "BTC/USDT", balance, onSizeChange, 
                     <div className="relative">
                         <input
                             type="text"
-                            placeholder='Price'
+                            placeholder={`Price (${symbol.split('/')[1] || "USDT"})`}
                             value={price}
                             onChange={(e) => setPrice(e.target.value)}
                             className="w-full bg-[#1E2023] border border-white/5 rounded-md p-2.5 text-sm outline-none focus:border-[#00B595]"
                         />
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[12px] text-gray-500">USDT</span>
                     </div>
                     <div className="relative">
                         <input
                             type="text"
-                            placeholder='Size'
+                            placeholder={`Size (${symbol.split('/')[0]})`}
                             value={size}
                             onChange={(e) => setSize(e.target.value)}
                             className="w-full bg-[#1E2023] border border-white/5 rounded-md p-2.5 text-sm outline-none focus:border-[#00B595]"
                         />
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[12px] text-gray-500">{symbol.split('/')[0]}</span>
                     </div>
                 </div>
             )}
