@@ -100,16 +100,22 @@ export default function TradeForm({ symbol = "BTC/USDT", balance, onSizeChange, 
     };
 
     useEffect(() => {
+        // Reset price and size when symbol changes. 
+        // This will allow the currentPrice effect below to grab the fresh price.
+        setPrice("");
+        setSize("");
+    }, [symbol]);
+
+    useEffect(() => {
+        // If price is empty, populate it with currentPrice.
+        // Also ensure if we switch back to a Limit/Stop order we auto-fill.
         if (currentPrice && !price && orderType !== "Market order") {
             setPrice(currentPrice.toString());
         }
+    }, [currentPrice, orderType, pricerrentPrice && !price && orderType !== "Market order") {
+            setPrice(currentPrice.toString());
+        }
     }, [currentPrice, orderType, price]);
-
-    useEffect(() => {
-        // Reset price and size when symbol changes
-        setPrice(currentPrice ? currentPrice.toString() : "");
-        setSize("");
-    }, [symbol]);
 
     useEffect(() => {
         if (externalSize !== undefined) {
@@ -263,7 +269,7 @@ export default function TradeForm({ symbol = "BTC/USDT", balance, onSizeChange, 
                         <input
                             type="text"
                             placeholder={orderType === "Market order" ? "Market Price" : `Price (${symbol.split('/')[1] || "USDT"})`}
-                            value={orderType === "Market order" ? "" : price}
+                            value={orderType === "Market order" ? `~${currentPrice || 0} ${symbol.split('/')[1] || "USDT"}` : price}
                             disabled={orderType === "Market order"}
                             onChange={(e) => setPrice(e.target.value)}
                             className={`w-full bg-[#1E2023] border border-white/5 rounded-md p-2.5 text-sm outline-none focus:border-[#00B595] ${orderType === "Market order" ? "opacity-50 cursor-not-allowed" : ""}`}
@@ -289,10 +295,11 @@ export default function TradeForm({ symbol = "BTC/USDT", balance, onSizeChange, 
                     <div className="relative">
                         <input
                             type="text"
-                            placeholder={`Price (${symbol.split('/')[1] || "USDT"})`}
-                            value={price}
+                            placeholder={orderType === "Market order" ? "Market Price" : `Price (${symbol.split('/')[1] || "USDT"})`}
+                            value={orderType === "Market order" ? `~${currentPrice || 0} ${symbol.split('/')[1] || "USDT"}` : price}
+                            disabled={orderType === "Market order"}
                             onChange={(e) => setPrice(e.target.value)}
-                            className="w-full bg-[#1E2023] border border-white/5 rounded-md p-2.5 text-sm outline-none focus:border-[#00B595]"
+                            className={`w-full bg-[#1E2023] border border-white/5 rounded-md p-2.5 text-sm outline-none focus:border-[#00B595] ${orderType === "Market order" ? "opacity-50 cursor-not-allowed" : ""}`}
                         />
                     </div>
                     <div className="relative">
