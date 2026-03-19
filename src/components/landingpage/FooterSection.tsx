@@ -3,21 +3,6 @@ import React from "react";
 import Image from "next/image";
 
 export default function Footer() {
-  const footerLinks = {
-    "About us": [
-      "Terms of use",
-      "Privacy Policy",
-      "Cookie Policy",
-      "Disclaimer",
-      "Support Policy",
-      "About Us",
-      "Fees",
-    ],
-    Tools: ["API Doc", "Apply for listing", "Trading view"],
-    "Our services": ["Buy crypto", "Trade crypto", "Futures trading"],
-    "Help center": ["Support", "Contact Us"],
-  };
-
   return (
     <footer
       data-animate="true"
@@ -68,39 +53,16 @@ export default function Footer() {
                 <a
                   key={i}
                   href="#"
-                  className="w-10 h-10 rounded-lg bg-[#353B40]  flex items-center justify-center hover:bg-white/10 transition-colors cursor-pointer group"
+                  className="w-10 h-10 rounded-lg bg-[#353B40] flex items-center justify-center hover:bg-white/10 transition-colors cursor-pointer group"
                 >
                   <img
                     src={img.src}
                     alt={img.alt}
-                    className="w-5 h-5 object-contain  group-hover:opacity-100 transition-opacity"
+                    className="w-5 h-5 object-contain group-hover:opacity-100 transition-opacity"
                   />
                 </a>
               ))}
             </div>
-          </div>
-
-          {/* Links Columns */}
-          <div className="md:col-span-8 grid font-inter grid-cols-2 md:flex md:gap-10 gap-x-34 gap-y-8 md:absolute md:right-25 md:bottom-77 md:mx-4 mx-6">
-            {Object.entries(footerLinks).map(([title, links]) => (
-              <div key={title} className="flex flex-col">
-                <h4 className="font-semibold mb-4 md:text-xl text-lg text-white whitespace-nowrap">
-                  {title}
-                </h4>
-                <ul className="md:space-y-4 space-y-3">
-                  {links.map((link) => (
-                    <li key={link}>
-                      <a
-                        href="#"
-                        className="text-gray-500 hover:text-white transition-colors md:text-md text-md cursor-pointer block"
-                      >
-                        {link}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
           </div>
         </div>
 

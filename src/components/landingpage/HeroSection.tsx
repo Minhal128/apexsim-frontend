@@ -1,6 +1,7 @@
 "use client";
 import React from "react";
 import { motion } from "framer-motion";
+import Link from "next/link";
 
 interface MarketCardProps {
   symbol: string;
@@ -149,9 +150,11 @@ export default function Hero() {
           Keep your digital assets offline, safe, and always under your
           control—secure storage with the freedom to invest anytime.
         </p>
-        <button className="bg-[#0055FF] hover:bg-blue-500 text-white px-10 py-3 rounded-full font-semibold text-md shadow-[0_0_40px_rgba(37,99,235,0.4)] transition-all cursor-pointer active:scale-95">
-          Start trading
-        </button>
+        <Link href="/login">
+          <button className="bg-[#0055FF] hover:bg-blue-500 text-white px-10 py-3 rounded-full font-semibold text-md shadow-[0_0_40px_rgba(37,99,235,0.4)] transition-all cursor-pointer active:scale-95">
+            Start trading
+          </button>
+        </Link>
       </motion.div>
 
       <div className="relative w-full flex justify-center items-start">
