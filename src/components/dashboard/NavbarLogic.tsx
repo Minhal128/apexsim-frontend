@@ -8,6 +8,8 @@ import SupportFAQModal from "./SupportModel";
 import WithdrawModal from "./WithdrawModel";
 import { apiRequest } from "@/lib/api";
 import { getSocket } from "@/lib/socket";
+import { useRouter } from "next/navigation";
+import { useClerk } from "@clerk/nextjs";
 
 const languages = [
   { code: "Eng", name: "English", flag: "https://flagcdn.com/us.svg" },
@@ -44,6 +46,18 @@ const availableMenuItems: Record<string, NavMenu> = {
 };
 
 export default function Navbar() {
+  const router = useRouter();
+  const { signOut } = useClerk();
+  
+  const handleLogout = async () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    try {
+      await signOut();
+    } catch(e) {}
+    router.push("/login");
+  };
+
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isLangOpen, setIsLangOpen] = useState(false);
@@ -273,26 +287,44 @@ export default function Navbar() {
             </Link>
           </div>
 
-          <Link href="/dashboard/profile">
-            <div className="relative" ref={profileRef}>
-              <button
-                onClick={() => setIsProfileOpen(!isProfileOpen)}
-                className="flex items-center gap-2 cursor-pointer ml-1"
-              >
-                <img
-                  src={
-                    userProfile?.avatar || "/images/manimage.png"
-                  }
-                  alt="Profile"
-                  className="w-9 h-9 rounded-full border-2 border-white/10 object-cover"
-                />
-                <FaCaretDown
-                  size={12}
-                  className="text-gray-50 transition-transform hidden sm:block"
-                />
-              </button>
-            </div>
-          </Link>
+          <div className="relative" ref={profileRef}>
+            <button
+              onClick={() => setIsProfileOpen(!isProfileOpen)}
+              className="flex items-center gap-2 cursor-pointer ml-1"
+            >
+              <img
+                src={userProfile?.avatar || "/images/manimage.png"}
+                alt="Profile"
+                className="w-9 h-9 rounded-full border-2 border-white/10 object-cover"
+              />
+              <FaCaretDown
+                size={12}
+                className="text-gray-50 transition-transform hidden sm:block"
+              />
+            </button>
+
+            {isProfileOpen && (
+              <div className="absolute top-[120%] right-0 w-48 bg-[#141414] border border-white/10 rounded-xl shadow-2xl py-2 z-[200]">
+                <Link href="/dashboard/profile">
+                  <div
+                    onClick={() => setIsProfileOpen(false)}
+                    className="px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/5 cursor-pointer transition-colors"
+                  >
+                    My Profile
+                  </div>
+                </Link>
+                <div
+                  onClick={() => {
+                    setIsProfileOpen(false);
+                    handleLogout();
+                  }}
+                  className="px-4 py-2 text-sm text-red-500 hover:bg-red-500/10 cursor-pointer transition-colors border-t border-white/5 mt-1 pt-2"
+                >
+                  Log Out
+                </div>
+              </div>
+            )}
+          </div>
 
           <button
             className="md:hidden p-2 cursor-pointer flex flex-col gap-1.5 ml-2"
@@ -429,7 +461,10 @@ export default function Navbar() {
 
           <div className="mt-auto pb-10">
             <button
-              onClick={closeMobileMenu}
+              onClick={() => {
+                closeMobileMenu();
+                handleLogout();
+              }}
               className="w-full bg-red-500/10 text-red-500 py-4 rounded-2xl font-bold cursor-pointer hover:bg-red-500/20 transition-all border border-red-500/20"
             >
               Log Out
