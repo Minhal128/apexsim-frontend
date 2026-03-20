@@ -112,9 +112,6 @@ export default function TradeForm({ symbol = "BTC/USDT", balance, onSizeChange, 
         if (currentPrice && !price && orderType !== "Market order") {
             setPrice(currentPrice.toString());
         }
-    }, [currentPrice, orderType, pricerrentPrice && !price && orderType !== "Market order") {
-            setPrice(currentPrice.toString());
-        }
     }, [currentPrice, orderType, price]);
 
     useEffect(() => {
