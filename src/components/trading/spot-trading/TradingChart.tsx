@@ -49,11 +49,44 @@ export default function TradingChart({
   const [quoteData, setQuoteData] = useState<TwelveDataQuote | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Fix prefix based on asset type if possible, or just pass symbol directly
-  // TradingView can auto-resolve symbols like AAPL or EURUSD without exchange prefixes in most cases.
-  const tvSymbol = symbol.includes("/") && symbol.includes("USDT") 
-    ? `BINANCE:${symbol.replace("/", "").toUpperCase()}`
-    : symbol.replace("/", "").toUpperCase();
+  const getTradingViewSymbol = (sym: string) => {
+    const s = sym.toUpperCase();
+    const base = s.split("/")[0] || s;
+    const quote = s.split("/")[1] || "USDT";
+
+    const mappings: Record<string, string> = {
+      AAPL: "NASDAQ:AAPL",
+      MSFT: "NASDAQ:MSFT",
+      GOOGL: "NASDAQ:GOOGL",
+      AMZN: "NASDAQ:AMZN",
+      TSLA: "NASDAQ:TSLA",
+      META: "NASDAQ:META",
+      SPX: "SP:SPX",
+      INDU: "DJ:DJI",
+      CCMP: "NASDAQ:IXIC",
+      FTSE: "TVC:UKX",
+      DAX: "XETR:DAX",
+      GOLD: "OANDA:XAUUSD",
+      SILVER: "OANDA:XAGUSD",
+      OIL: "TVC:USOIL",
+      NATGAS: "TVC:NATGAS",
+      COPPER: "COMEX:HG1!"
+    };
+
+    if (mappings[base]) return mappings[base];
+
+    if (["EUR", "GBP", "AUD", "JPY", "CAD", "CHF", "NZD"].includes(base)) {
+      return `FX:${base}${quote.replace("T", "")}`;
+    }
+
+    if (quote.includes("USD")) {
+      return `BINANCE:${base}USDT`;
+    }
+
+    return s.replace("/", "");
+  };
+
+  const tvSymbol = getTradingViewSymbol(symbol);
 
   useEffect(() => {
     if (activeTab === "info") {

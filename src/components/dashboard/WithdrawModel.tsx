@@ -99,7 +99,7 @@ const BankTransfer = ({ wallet, onComplete }: { wallet: any, onComplete: () => v
     try {
       await apiRequest("/transactions/withdraw", {
         method: "POST",
-        body: JSON.stringify({ asset: 'USDT', amount: Number(amount), address: 'Bank-Demo', network: 'Bank' })
+        body: JSON.stringify({ asset: 'USDT', amount: Number(amount), address: 'User-Bank-Account', network: 'Bank' })
       });
       toast.addToast("Withdrawal submitted!", "success");
       onComplete();

@@ -36,10 +36,44 @@ export default React.memo(function FutureTradingChart({
   coinName = "Bitcoin",
   marketInfo,
 }: FutureTradingChartProps) {
-  // Match behavior from spot trading chart: always use upper-case symbols and add a BINANCE prefix for USDT pairs.
-  const tvSymbol = symbol.includes("/") && symbol.includes("USDT")
-    ? `BINANCE:${symbol.replace("/", "").toUpperCase()}`
-    : symbol.replace("/", "").toUpperCase();
+  const getTradingViewSymbol = (sym: string) => {
+    const s = sym.toUpperCase();
+    const base = s.split("/")[0] || s;
+    const quote = s.split("/")[1] || "USDT";
+
+    const mappings: Record<string, string> = {
+      AAPL: "NASDAQ:AAPL",
+      MSFT: "NASDAQ:MSFT",
+      GOOGL: "NASDAQ:GOOGL",
+      AMZN: "NASDAQ:AMZN",
+      TSLA: "NASDAQ:TSLA",
+      META: "NASDAQ:META",
+      SPX: "SP:SPX",
+      INDU: "DJ:DJI",
+      CCMP: "NASDAQ:IXIC",
+      FTSE: "TVC:UKX",
+      DAX: "XETR:DAX",
+      GOLD: "OANDA:XAUUSD",
+      SILVER: "OANDA:XAGUSD",
+      OIL: "TVC:USOIL",
+      NATGAS: "TVC:NATGAS",
+      COPPER: "COMEX:HG1!"
+    };
+
+    if (mappings[base]) return mappings[base];
+
+    if (["EUR", "GBP", "AUD", "JPY", "CAD", "CHF", "NZD"].includes(base)) {
+      return `FX:${base}${quote.replace("T", "")}`;
+    }
+
+    if (quote.includes("USD")) {
+      return `BINANCE:${base}USDT`;
+    }
+
+    return s.replace("/", "");
+  };
+
+  const tvSymbol = getTradingViewSymbol(symbol);
 
   const formatPrice = (val?: number | string) => {
     if (val === undefined || val === null) return "N/A";

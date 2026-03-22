@@ -65,7 +65,7 @@ export default function DepositPage() {
           asset: depositType === 'crypto' ? selectedCoin.name : 'USDT',
           amount: finalAmount,
           network: selectedNetwork,
-          address: "Demo-Address-123"
+          address: "Apex-Wallet-Address"
         }),
       });
       alert("Deposit successful!");
@@ -127,7 +127,7 @@ export default function DepositPage() {
               <div className="relative pl-8">
                 <span className="absolute -left-4 top-0 w-8 h-8 rounded-full bg-[#252525] border border-white/10 flex items-center justify-center text-sm font-bold text-white">3</span>
                 <p className="text-lg font-semibold">Ready to deposit {selectedCoin.name}</p>
-                <button onClick={handleDeposit} disabled={loading} className="w-full bg-[#0055FF] py-3 rounded-lg mt-4 disabled:opacity-50">{loading ? "Processing..." : `Click to Deposit Demo ${selectedCoin.name}`}</button>
+                <button onClick={handleDeposit} disabled={loading} className="w-full bg-[#0055FF] py-3 rounded-lg mt-4 disabled:opacity-50">{loading ? "Processing..." : `Click to Deposit ${selectedCoin.name}`}</button>
               </div>
             </div>
           ) : (
@@ -141,7 +141,7 @@ export default function DepositPage() {
                   <button key={amt} onClick={() => setFiatAmount(amt.replace("$", "").replace(",", ""))} className="px-4 py-2 bg-[#252525] border border-white/5 rounded-md text-sm font-semibold hover:border-white/20">{amt}</button>
                 ))}
               </div>
-              <button onClick={handleDeposit} disabled={loading} className="w-full bg-[#0055FF] text-white py-3 rounded-xl shadow-lg mt-auto disabled:opacity-50">{loading ? "Processing..." : "Deposit Fiat (Demo)"}</button>
+              <button onClick={handleDeposit} disabled={loading} className="w-full bg-[#0055FF] text-white py-3 rounded-xl shadow-lg mt-auto disabled:opacity-50">{loading ? "Processing..." : "Deposit Fiat"}</button>
             </div>
           )}
         </div>
