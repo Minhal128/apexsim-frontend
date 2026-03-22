@@ -191,3 +191,5 @@ const InfoRow = ({ label, value }: { label: string; value: string | React.ReactN
     <span className="text-gray-100 text-sm font-medium">{value}</span>
   </div>
 );
+
+

@@ -23,12 +23,15 @@ export default function CoinSelector({ isOpen, onClose, onSelect, currentAsset }
   const [searchTerm, setSearchTerm] = useState("");
   const [coins, setCoins] = useState<Coin[]>([]);
   const [loading, setLoading] = useState(true);
+  const [category, setCategory] = useState("crypto");
+  const categories = ["crypto", "forex", "commodities", "indices", "stocks"];
 
   useEffect(() => {
     if (!isOpen) return;
 
     const socket = initializeSocket();
-    socket.emit('subscribe-market', 'crypto');
+    socket.emit('subscribe-market', category);
+
 
     const handleMarketData = (data: any) => {
       // Filter out invalid/zeroed data from backend
@@ -49,6 +52,8 @@ export default function CoinSelector({ isOpen, onClose, onSelect, currentAsset }
 
     // Initial search for coins if socket is slow/broken
     const fetchInitialCoins = async () => {
+      if (category !== 'crypto') return;
+
       try {
         const resp = await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=20&page=1&sparkline=false');
         const data = await resp.json();
@@ -77,7 +82,7 @@ export default function CoinSelector({ isOpen, onClose, onSelect, currentAsset }
       socket.off('market-data', handleMarketData);
       socket.off('market-update', handleMarketData);
     };
-  }, [isOpen]);
+  }, [isOpen, category]);
 
   const filteredCoins = coins.filter(coin => 
     coin.symbol.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -108,6 +113,18 @@ export default function CoinSelector({ isOpen, onClose, onSelect, currentAsset }
               autoFocus
             />
           </div>
+        </div>
+
+        <div className="flex gap-2 px-4 pb-2 overflow-x-auto no-scrollbar">
+          {categories.map((cat) => (
+            <button
+              key={cat}
+              onClick={() => { setCategory(cat); setCoins([]); setLoading(true); }}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium capitalize whitespace-nowrap transition-colors ${category === cat ? "bg-[#00B595] text-white" : "bg-white/5 text-gray-400 hover:text-white"}`}
+            >
+              {cat}
+            </button>
+          ))}
         </div>
 
         <div className="flex-1 overflow-y-auto no-scrollbar p-2">

@@ -28,6 +28,8 @@ function TradingPageContent() {
   // Coin dropdown state
   const [coins, setCoins]               = useState<CoinInfo[]>([]);
   const [coinsLoading, setCoinsLoading] = useState(true);
+  const [category, setCategory] = useState(searchParams?.get('category') || 'crypto');
+  const categories = ['crypto', 'forex', 'commodities', 'indices', 'stocks'];
   const [selectedCoin, setSelectedCoin] = useState<CoinInfo>({
     id: 'bitcoin',
     symbol: 'btc',
@@ -48,23 +50,55 @@ function TradingPageContent() {
   // Live market data
   const [marketInfo, setMarketInfo] = useState<any>(null);
 
-  // Fetch top 100 coins from CoinGecko on mount
+  // Fetch top 100 coins from CoinGecko or socket
   useEffect(() => {
-    fetch(
-      'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&sparkline=false',
-    )
-      .then((r) => r.json())
-      .then((data: CoinInfo[]) => {
-        if (!Array.isArray(data)) return;
-        setCoins(data);
-        // Pre-select the coin that matches the URL param
+    const socket = initializeSocket();
+    socket.emit('subscribe-market', category);
+    
+    const handleMarketData = (data: any) => {
+      const validData = Object.entries(data).filter(([_, details]: [string, any]) => details.usd > 0);
+      if (validData.length > 0) {
+        const formatted: CoinInfo[] = validData.map(([symbol, details]: [string, any]) => ({
+          id: symbol.toLowerCase(),
+          symbol: symbol.toUpperCase(),
+          name: details.name || symbol,
+          current_price: details.usd || 0,
+          price_change_percentage_24h: details.change24h || 0,
+          image: details.image || `https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/${symbol.toLowerCase()}.png`,
+          market_cap_rank: 1
+        }));
+        setCoins(formatted);
         const assetBase = initialAsset.split('/')[0].toLowerCase();
-        const match = data.find((c) => c.symbol.toLowerCase() === assetBase);
+        const match = formatted.find((c) => c.symbol.toLowerCase() === assetBase);
         if (match) setSelectedCoin(match);
-      })
-      .catch(console.error)
-      .finally(() => setCoinsLoading(false));
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+        setCoinsLoading(false);
+      }
+    };
+
+    if (category === 'crypto') {
+      fetch(
+        'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&sparkline=false',
+      )
+        .then((r) => r.json())
+        .then((data: CoinInfo[]) => {
+          if (!Array.isArray(data)) return;
+          setCoins(data);
+          const assetBase = initialAsset.split('/')[0].toLowerCase();
+          const match = data.find((c) => c.symbol.toLowerCase() === assetBase);
+          if (match) setSelectedCoin(match);
+        })
+        .catch(console.error)
+        .finally(() => setCoinsLoading(false));
+    }
+
+    socket.on('market-data', handleMarketData);
+    socket.on('market-update', handleMarketData);
+
+    return () => {
+      socket.off('market-data', handleMarketData);
+      socket.off('market-update', handleMarketData);
+    };
+  }, [category]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Close dropdown when clicking outside the fixed overlay
   useEffect(() => {
@@ -106,14 +140,13 @@ function TradingPageContent() {
   useEffect(() => {
     const assetBase = selectedCoin.symbol.toUpperCase();
     const socket = initializeSocket();
-    const subCategory = searchParams?.get('category') || 'crypto';
-    socket.emit('subscribe-market', subCategory.toLowerCase());
+    socket.emit('subscribe-market', category);
     const handler = (data: any) => {
       if (data?.[assetBase]) setMarketInfo(data[assetBase]);
     };
     socket.on('market-update', handler);
     return () => { socket.off('market-update', handler); };
-  }, [selectedCoin.symbol]);
+  }, [selectedCoin.symbol, category]);
 
   const assetSymbol   = `${selectedCoin.symbol.toUpperCase()}/${quoteParam}`;
   const filteredCoins = coins.filter(
@@ -159,6 +192,18 @@ function TradingPageContent() {
               style={{ position: 'fixed', top: dropdownPos.top, left: dropdownPos.left, width: dropdownPos.width, zIndex: 9999 }}
               className="bg-[#1e1e1e] border border-white/10 rounded-xl shadow-2xl overflow-hidden"
             >
+              {/* Categories */}
+              <div className="flex gap-2 p-2 overflow-x-auto no-scrollbar border-b border-white/10">
+                {categories.map((cat) => (
+                  <button
+                    key={cat}
+                    onClick={() => { setCategory(cat); setCoins([]); setCoinsLoading(true); }}
+                    className={`px-2 py-1 rounded-lg text-xs font-medium capitalize whitespace-nowrap transition-colors ${category === cat ? 'bg-[#f0b90b] text-black' : 'bg-white/5 text-gray-400 hover:text-white'}`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
               {/* Search */}
               <div className="p-2 border-b border-white/10">
                 <input
