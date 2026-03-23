@@ -15,7 +15,7 @@ interface Coin {
 interface CoinSelectorProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelect: (symbol: string) => void;
+  onSelect: (symbol: string, category: string) => void;
   currentAsset: string;
 }
 
@@ -34,14 +34,14 @@ export default function CoinSelector({ isOpen, onClose, onSelect, currentAsset }
 
 
     const handleMarketData = (data: any) => {
-      // Filter out invalid/zeroed data from backend
-      const validData = Object.entries(data).filter(([_, details]: [string, any]) => details.usd > 0);
-      
+      // Filter out invalid/zeroed data from backend (supports crypto usd, forex/stocks price, indices value)
+      const validData = Object.entries(data).filter(([_, details]: [string, any]) => (details.usd > 0 || details.price > 0 || details.value > 0));
+
       if (validData.length > 0) {
         const formatted: Coin[] = validData.map(([symbol, details]: [string, any]) => ({
-          symbol,
-          name: details.name || symbol,
-          usd: details.usd || 0,
+          symbol: details.symbol || symbol,
+          name: details.name || details.pair || symbol,
+          usd: details.usd || details.price || details.value || 0,
           change24h: details.change24h || 0,
           image: details.image || `https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/${symbol.toLowerCase()}.png`
         }));
@@ -136,7 +136,11 @@ export default function CoinSelector({ isOpen, onClose, onSelect, currentAsset }
                 <div 
                   key={coin.symbol}
                   onClick={() => {
-                    onSelect(`${coin.symbol}/USDT`);
+                    // Only append /USDT for crypto; other categories use the symbol directly
+                    const formattedSymbol = category === 'crypto' 
+                      ? `${coin.symbol}/USDT`
+                      : coin.symbol;
+                    onSelect(formattedSymbol, category);
                     onClose();
                   }}
                   className={`flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all hover:bg-white/5 ${currentAsset.includes(coin.symbol) ? 'bg-[#00B595]/10 border border-[#00B595]/20' : 'border border-transparent'}`}
@@ -151,7 +155,7 @@ export default function CoinSelector({ isOpen, onClose, onSelect, currentAsset }
                       }}
                     />
                     <div>
-                      <p className="text-sm font-bold text-white uppercase">{coin.symbol}</p>
+                      <p className="text-sm font-bold text-white uppercase">{coin.symbol}{category === 'crypto' ? '/USDT' : ''}</p>
                       <p className="text-[11px] text-gray-500">{coin.name}</p>
                     </div>
                   </div>

@@ -45,8 +45,8 @@ export default function FutureTradingFooter() {
         if (!data) return;
         const newPrices: {[key: string]: number} = {};
         Object.keys(data).forEach(coin => {
-            if (data[coin] && data[coin].usd) {
-                newPrices[`${coin}/USDT`] = data[coin].usd;
+            if (data[coin] && (data[coin].usd || data[coin].price || data[coin].value)) {
+                newPrices[`${coin}/USDT`] = (data[coin].usd || data[coin].price || data[coin].value);
             }
         });
         setMarketPrices(prev => ({...prev, ...newPrices}));

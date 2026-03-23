@@ -1,0 +1,1 @@
+const fs = require("fs"); const file = "src/components/trading/futures-trading/FutureTradingChart.tsx"; let c = fs.readFileSync(file, "utf8"); c = c.replace(/BINANCE:[^\`]+/g, "BINANCE:${base}USDT"); fs.writeFileSync(file, c);

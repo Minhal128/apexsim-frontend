@@ -56,7 +56,7 @@ export default function TradeForm({ symbol = "BTC/USDT" }: TradeFormProps) {
     try {
       const prices = await apiRequest("/market/prices");
       const assetBase = symbol.split('/')[0];
-      const fetchedPrice = prices[assetBase]?.usd || 0;
+      const fetchedPrice = (prices[assetBase]?.usd || prices[assetBase]?.price || prices[assetBase]?.value) || 0;
       if (fetchedPrice > 0) {
         setPrice(fetchedPrice.toString());
         setCurrentMarketPrice(fetchedPrice.toString());
@@ -80,8 +80,8 @@ export default function TradeForm({ symbol = "BTC/USDT" }: TradeFormProps) {
 
     const handleMarketUpdate = (data: any) => {
         const assetBase = symbol.split('/')[0];
-        if (data[assetBase] && data[assetBase].usd) {
-            const livePrice = data[assetBase].usd.toString();
+        if (data[assetBase] && (data[assetBase].usd || data[assetBase].price || data[assetBase].value)) {
+            const livePrice = (data[assetBase].usd || data[assetBase].price || data[assetBase].value).toString();
             setCurrentMarketPrice(livePrice);
         }
     };

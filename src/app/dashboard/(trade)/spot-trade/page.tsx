@@ -50,25 +50,35 @@ function TradingPageContent() {
   // Live market data
   const [marketInfo, setMarketInfo] = useState<any>(null);
 
+  // Sync selectedCoin when URL asset changes
+  useEffect(() => {
+    const assetBase = initialAsset.includes('/') ? initialAsset.split('/')[0].toLowerCase() : initialAsset.toLowerCase();
+    const match = coins.find((c) => c.symbol.toLowerCase() === assetBase);
+    if (match && match.symbol.toLowerCase() !== selectedCoin.symbol.toLowerCase()) {
+      setSelectedCoin(match);
+      setMarketInfo(null); // Reset market info for new asset
+    }
+  }, [initialAsset, coins]);
+
   // Fetch top 100 coins from CoinGecko or socket
   useEffect(() => {
     const socket = initializeSocket();
     socket.emit('subscribe-market', category);
     
     const handleMarketData = (data: any) => {
-      const validData = Object.entries(data).filter(([_, details]: [string, any]) => details.usd > 0);
+      const validData = Object.entries(data).filter(([_, details]: [string, any]) => (details.usd > 0 || details.price > 0 || details.value > 0));
       if (validData.length > 0) {
         const formatted: CoinInfo[] = validData.map(([symbol, details]: [string, any]) => ({
           id: symbol.toLowerCase(),
-          symbol: symbol.toUpperCase(),
-          name: details.name || symbol,
-          current_price: details.usd || 0,
+          symbol: details.symbol || symbol.toUpperCase(),
+          name: details.name || details.pair || symbol,
+          current_price: details.usd || details.price || details.value || 0,
           price_change_percentage_24h: details.change24h || 0,
           image: details.image || `https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/${symbol.toLowerCase()}.png`,
           market_cap_rank: 1
         }));
         setCoins(formatted);
-        const assetBase = initialAsset.split('/')[0].toLowerCase();
+        const assetBase = initialAsset.includes('/') ? initialAsset.split('/')[0].toLowerCase() : initialAsset.toLowerCase();
         const match = formatted.find((c) => c.symbol.toLowerCase() === assetBase);
         if (match) setSelectedCoin(match);
         setCoinsLoading(false);
@@ -83,7 +93,7 @@ function TradingPageContent() {
         .then((data: CoinInfo[]) => {
           if (!Array.isArray(data)) return;
           setCoins(data);
-          const assetBase = initialAsset.split('/')[0].toLowerCase();
+          const assetBase = initialAsset.includes('/') ? initialAsset.split('/')[0].toLowerCase() : initialAsset.toLowerCase();
           const match = data.find((c) => c.symbol.toLowerCase() === assetBase);
           if (match) setSelectedCoin(match);
         })
@@ -98,7 +108,7 @@ function TradingPageContent() {
       socket.off('market-data', handleMarketData);
       socket.off('market-update', handleMarketData);
     };
-  }, [category]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [category, initialAsset]); // Re-run when category or asset changes
 
   // Close dropdown when clicking outside the fixed overlay
   useEffect(() => {
@@ -148,7 +158,10 @@ function TradingPageContent() {
     return () => { socket.off('market-update', handler); };
   }, [selectedCoin.symbol, category]);
 
-  const assetSymbol   = `${selectedCoin.symbol.toUpperCase()}/${quoteParam}`;
+  // For crypto use SYMBOL/USDT, for other categories just the symbol
+  const assetSymbol = category === 'crypto' 
+    ? `${selectedCoin.symbol.toUpperCase()}/${quoteParam}`
+    : selectedCoin.symbol.toUpperCase();
   const filteredCoins = coins.filter(
     (c) =>
       c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -176,7 +189,7 @@ function TradingPageContent() {
             />
             <div className="flex flex-col items-start">
               <span className="text-white md:text-sm text-xs font-bold leading-none">
-                {selectedCoin.symbol.toUpperCase()}/USDT
+                {selectedCoin.symbol.toUpperCase()}{category === 'crypto' ? '/USDT' : ''}
               </span>
               <span className="text-gray-500 text-[10px] leading-none mt-0.5">{selectedCoin.name}</span>
             </div>
@@ -240,7 +253,11 @@ function TradingPageContent() {
                         setMarketInfo(null);
 
                         // Keep URL in sync so refresh/bookmarks keep the selected asset
-                        router.replace(`?asset=${coin.symbol.toUpperCase()}`);
+                        // For crypto use SYMBOL/USDT, for other categories just the symbol
+                        const assetValue = category === 'crypto' 
+                          ? `${coin.symbol.toUpperCase()}/USDT`
+                          : coin.symbol.toUpperCase();
+                        router.replace(`?asset=${assetValue}&category=${category}`);
                       }}
                       className={`w-full flex items-center gap-3 px-3 py-2.5 hover:bg-white/5 transition-colors ${
                         coin.id === selectedCoin.id ? 'bg-[#f0b90b]/10' : ''
@@ -254,7 +271,7 @@ function TradingPageContent() {
                       />
                       <div className="flex flex-col items-start flex-1 min-w-0">
                         <span className="text-white text-sm font-semibold leading-tight">
-                          {coin.symbol.toUpperCase()}/USDT
+                          {coin.symbol.toUpperCase()}{category === 'crypto' ? '/USDT' : ''}
                         </span>
                         <span className="text-gray-500 text-[11px] truncate w-full text-left leading-tight">{coin.name}</span>
                       </div>
@@ -278,10 +295,10 @@ function TradingPageContent() {
         {/* Market Stats */}
         <div className="flex gap-4 font-semibold text-[11px]">
           <div>
-            <p className={`md:text-lg text-sm font-bold ${(marketInfo?.usd_24h_change ?? selectedCoin.price_change_percentage_24h) >= 0 ? 'text-[#26a69a]' : 'text-[#ef5350]'}`}>
-              ${(marketInfo?.usd ?? selectedCoin.current_price)?.toLocaleString() || '0.00'}
+            <p className={`md:text-lg text-sm font-bold ${(marketInfo?.regularMarketChangePercent ?? marketInfo?.changePercent ?? marketInfo?.usd_24h_change ?? selectedCoin.price_change_percentage_24h) >= 0 ? 'text-[#26a69a]' : 'text-[#ef5350]'}`}>
+              ${(marketInfo?.price ?? marketInfo?.value ?? marketInfo?.usd ?? selectedCoin.current_price)?.toLocaleString() || '0.00'}
             </p>
-            <p className="text-gray-500 text-[12px]">${(marketInfo?.usd ?? selectedCoin.current_price)?.toLocaleString() || '0.00'}</p>
+            <p className="text-gray-500 text-[12px]">${(marketInfo?.price ?? marketInfo?.value ?? marketInfo?.usd ?? selectedCoin.current_price)?.toLocaleString() || '0.00'}</p>
           </div>
           <div>
             <p className="text-gray-500 md:text-[12px] text-[10px]">24h Change</p>

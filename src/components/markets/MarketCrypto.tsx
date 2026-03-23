@@ -117,9 +117,13 @@ const MarketContent = ({
                         }
                     }
                     
+                    // For non-crypto categories, don't append the quote asset
+                    const isCrypto = activeCategory.toLowerCase() === 'crypto';
+                    const assetParam = isCrypto ? `${baseAsset}/${quoteAsset}` : baseAsset;
+                    
                     const tradeTarget = activeTab === 'Futures'
-                        ? `/dashboard/futures-trade?asset=${encodeURIComponent(baseAsset + '/' + quoteAsset)}&category=${activeCategory.toLowerCase()}`
-                        : `/dashboard/spot-trade?asset=${encodeURIComponent(baseAsset + '/' + quoteAsset)}&category=${activeCategory.toLowerCase()}`;
+                        ? `/dashboard/futures-trade?asset=${encodeURIComponent(assetParam)}&category=${activeCategory.toLowerCase()}`
+                        : `/dashboard/spot-trade?asset=${encodeURIComponent(assetParam)}&category=${activeCategory.toLowerCase()}`;
 
                     return (
                         <div key={i} className="bg-[#222222] rounded-xl p-5 cursor-pointer group hover:bg-[#282828] transition-colors" onClick={() => router.push(tradeTarget)}>
@@ -169,9 +173,13 @@ const MarketContent = ({
                                 }
                             }
                             
+                            // For non-crypto categories, don't append the quote asset
+                            const isCrypto = activeCategory.toLowerCase() === 'crypto';
+                            const assetParam = isCrypto ? `${baseAsset}/${quoteAsset}` : baseAsset;
+                            
                             const tradeTarget = activeTab === 'Futures'
-                                ? `/dashboard/futures-trade?asset=${encodeURIComponent(baseAsset + '/' + quoteAsset)}&category=${activeCategory.toLowerCase()}`
-                                : `/dashboard/spot-trade?asset=${encodeURIComponent(baseAsset + '/' + quoteAsset)}&category=${activeCategory.toLowerCase()}`;
+                                ? `/dashboard/futures-trade?asset=${encodeURIComponent(assetParam)}&category=${activeCategory.toLowerCase()}`
+                                : `/dashboard/spot-trade?asset=${encodeURIComponent(assetParam)}&category=${activeCategory.toLowerCase()}`;
                             return (
                                 <tr key={idx} className="group hover:bg-white/2 transition-colors">
                                     <td className="py-5 pr-2">

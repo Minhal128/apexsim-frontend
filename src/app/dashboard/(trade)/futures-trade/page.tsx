@@ -18,16 +18,21 @@ function FutureTradingPageContent() {
   const [isSelectorOpen, setIsSelectorOpen] = useState(false);
   const assetParam = searchParams?.get('asset') || 'BTC/USDT';
   const quoteParam = searchParams?.get('quote') || 'USDT';
-  const assetBase = assetParam.split('/')[0];
+  const categoryParam = searchParams?.get('category') || 'crypto';
+  // For crypto: BTC/USDT -> BTC, for others: GOLD -> GOLD
+  const assetBase = assetParam.includes('/') ? assetParam.split('/')[0] : assetParam;
 
   const [marketInfo, setMarketInfo] = useState<any>(null);
 
   useEffect(() => {
+    // Reset market info when asset changes
+    setMarketInfo(null);
+    
     const fetchMarketData = async () => {
       try {
         // Try backend first
         const data = await apiRequest("/market/prices");
-        if (data && data[assetBase] && data[assetBase].usd > 0) {
+        if (data && data[assetBase] && (data[assetBase].usd || data[assetBase].price || data[assetBase].value) > 0) {
           setMarketInfo(data[assetBase]);
           return;
         }
@@ -46,7 +51,7 @@ function FutureTradingPageContent() {
         
         if (data[coinId]) {
           setMarketInfo({
-            usd: data[coinId].usd,
+            usd: data[coinId].usd || data[coinId].price || data[coinId].value,
             change24h: data[coinId].usd_24h_change,
             high24h: data[coinId].usd_24h_high || data[coinId].usd * 1.02,
             low24h: data[coinId].usd_24h_low || data[coinId].usd * 0.98,
@@ -62,11 +67,10 @@ function FutureTradingPageContent() {
     fetchMarketData();
 
     const socket = initializeSocket();
-    const subCategory = searchParams?.get('category') || 'crypto';
-    socket.emit('subscribe-market', subCategory.toLowerCase());
+    socket.emit('subscribe-market', categoryParam.toLowerCase());
     
     const handler = (data: any) => {
-      if (data && data[assetBase] && data[assetBase].usd > 0) {
+      if (data && data[assetBase] && (data[assetBase].usd || data[assetBase].price || data[assetBase].value) > 0) {
         setMarketInfo(data[assetBase]);
       }
     };
@@ -81,7 +85,7 @@ function FutureTradingPageContent() {
       socket.off('market-update', handler);
       clearInterval(interval);
     };
-  }, [assetBase]);
+  }, [assetBase, categoryParam]);
 
   const getIconUrl = (symbol: string) => {
     const mapping: { [key: string]: string } = {
@@ -185,38 +189,38 @@ function FutureTradingPageContent() {
           </div>
           <div className="flex gap-6 items-center shrink-0">
             <div className="whitespace-nowrap">
-              <p className={`text-[16px] font-bold ${!marketInfo ? 'text-gray-600' : (marketInfo?.change24h || 0) >= 0 ? 'text-[#00B595]' : 'text-[#ef5350]'}`}>
-                {marketInfo?.usd ? marketInfo.usd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'Loading...'}
+              <p className={`text-[16px] font-bold ${!marketInfo ? 'text-gray-600' : ((marketInfo?.change24h ?? marketInfo?.regularMarketChangePercent ?? marketInfo?.usd_24h_change) || 0) >= 0 ? 'text-[#00B595]' : 'text-[#ef5350]'}`}>
+                {(marketInfo?.usd ?? marketInfo?.price ?? marketInfo?.value) ? (marketInfo.usd || marketInfo.price || marketInfo.value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'Loading...'}
               </p>
               <p className="text-gray-500 text-[11px] font-medium">
-                ${marketInfo?.usd ? marketInfo.usd.toLocaleString() : '---'}
+                ${(marketInfo?.usd ?? marketInfo?.price ?? marketInfo?.value) ? (marketInfo.usd || marketInfo.price || marketInfo.value).toLocaleString() : '---'}
               </p>
             </div>
             <div className="whitespace-nowrap">
               <p className="text-gray-500 text-[11px]">24h Change</p>
-              <p className={`text-[13px] font-medium ${!marketInfo ? 'text-gray-600' : (marketInfo?.change24h || 0) >= 0 ? 'text-[#00B595]' : 'text-[#ef5350]'}`}>
-                {marketInfo?.change24h ? marketInfo.change24h.toFixed(2) : '0.00'}%
+              <p className={`text-[13px] font-medium ${!marketInfo ? 'text-gray-600' : ((marketInfo?.change24h ?? marketInfo?.regularMarketChangePercent ?? marketInfo?.usd_24h_change) || 0) >= 0 ? 'text-[#00B595]' : 'text-[#ef5350]'}`}>
+                {(marketInfo?.change24h ?? marketInfo?.regularMarketChangePercent ?? marketInfo?.usd_24h_change) ? (marketInfo.change24h || marketInfo.regularMarketChangePercent || marketInfo.usd_24h_change).toFixed(2) : '0.00'}%
               </p>
             </div>
             <div className="whitespace-nowrap">
               <p className="text-gray-500 text-[11px]">24h High</p>
-              <p className="text-white text-[13px] font-medium">{marketInfo?.high24h ? marketInfo.high24h.toLocaleString() : '---'}</p>
+              <p className="text-white text-[13px] font-medium">{(marketInfo?.high24h ?? marketInfo?.regularMarketDayHigh) ? (marketInfo.high24h || marketInfo.regularMarketDayHigh).toLocaleString() : '---'}</p>
             </div>
             <div className="whitespace-nowrap">
               <p className="text-gray-500 text-[11px]">24h Low</p>
-              <p className="text-white text-[13px] font-medium">{marketInfo?.low24h ? marketInfo.low24h.toLocaleString() : '---'}</p>
+              <p className="text-white text-[13px] font-medium">{(marketInfo?.low24h ?? marketInfo?.regularMarketDayLow) ? (marketInfo.low24h || marketInfo.regularMarketDayLow).toLocaleString() : '---'}</p>
             </div>
             <div className="whitespace-nowrap">
               <p className="text-gray-500 text-[11px]">24h Vol ({assetBase})</p>
               <p className="text-white text-[13px] font-medium">
-                {marketInfo?.volume24h && marketInfo?.usd 
-                  ? (marketInfo.volume24h / marketInfo.usd).toLocaleString(undefined, { maximumFractionDigits: 0 }) 
+                {(marketInfo?.volume24h ?? marketInfo?.regularMarketVolume) && (marketInfo?.usd ?? marketInfo?.price ?? marketInfo?.value) 
+                  ? ((marketInfo.volume24h || marketInfo.regularMarketVolume) / (marketInfo.usd || marketInfo.price || marketInfo.value)).toLocaleString(undefined, { maximumFractionDigits: 0 }) 
                   : '0'}
               </p>
             </div>
             <div className="whitespace-nowrap">
               <p className="text-gray-500 text-[11px]">24h Vol ({quoteParam})</p>
-              <p className="text-white text-[13px] font-medium">{marketInfo?.volume24h ? marketInfo.volume24h.toLocaleString(undefined, { maximumFractionDigits: 0 }) : '0'}</p>
+              <p className="text-white text-[13px] font-medium">{(marketInfo?.volume24h ?? marketInfo?.regularMarketVolume) ? (marketInfo.volume24h || marketInfo.regularMarketVolume).toLocaleString(undefined, { maximumFractionDigits: 0 }) : '0'}</p>
             </div>
           </div>
         </div>
@@ -261,9 +265,9 @@ function FutureTradingPageContent() {
                 <TradingChart
                   activeView={activeView}
                   symbol={assetParam}
-                  currentPrice={marketInfo?.usd}
-                  high24h={marketInfo?.high24h}
-                  low24h={marketInfo?.low24h}
+                  currentPrice={(marketInfo?.usd ?? marketInfo?.price ?? marketInfo?.value)}
+                  high24h={(marketInfo?.high24h ?? marketInfo?.regularMarketDayHigh)}
+                  low24h={(marketInfo?.low24h ?? marketInfo?.regularMarketDayLow)}
                   marketInfo={marketInfo}
                   onTrade={handleExecuteTrade}
                   externalSize={sharedSize}
@@ -273,7 +277,7 @@ function FutureTradingPageContent() {
             </div>
 
             <div className="w-full md:w-[320px] shrink-0 border-b md:border-b-0 lg:border-r border-white/5 order-2">
-              <OrderBook symbol={assetParam} currentPrice={marketInfo?.usd} />
+              <OrderBook symbol={assetParam} currentPrice={(marketInfo?.usd ?? marketInfo?.price ?? marketInfo?.value)} />
             </div>
           </div>
 
@@ -283,7 +287,7 @@ function FutureTradingPageContent() {
               balance={walletInfo.total}
               externalSize={sharedSize}
               onSizeChange={setSharedSize}
-              currentPrice={marketInfo?.usd}
+              currentPrice={(marketInfo?.usd ?? marketInfo?.price ?? marketInfo?.value)}
             />
           </div>
 
@@ -298,7 +302,7 @@ function FutureTradingPageContent() {
             balance={walletInfo.total}
             externalSize={sharedSize}
             onSizeChange={setSharedSize}
-            currentPrice={marketInfo?.usd}
+            currentPrice={(marketInfo?.usd ?? marketInfo?.price ?? marketInfo?.value)}
           />
         </div>
 
@@ -307,8 +311,8 @@ function FutureTradingPageContent() {
       <CoinSelector 
         isOpen={isSelectorOpen}
         onClose={() => setIsSelectorOpen(false)}
-        onSelect={(symbol) => {
-          router.push(`/dashboard/futures-trade?asset=${symbol}`);
+        onSelect={(symbol, category) => {
+          router.push(`/dashboard/futures-trade?asset=${symbol}&category=${category}`);
         }}
         currentAsset={assetParam}
       />

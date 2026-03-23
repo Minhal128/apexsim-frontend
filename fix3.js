@@ -1,0 +1,1 @@
+const fs=require('fs');const p='src/components/trading/futures-trading/CoinSelector.tsx';let t=fs.readFileSync(p,'utf8');t=t.replace('onSelect(category !== "crypto" && !coin.symbol.includes("/") ? coin.symbol : `${coin.symbol}/USDT`);', 'onSelect(coin.symbol.includes("/") || category !== "crypto" ? coin.symbol : `${coin.symbol}/USDT`);');fs.writeFileSync(p,t);

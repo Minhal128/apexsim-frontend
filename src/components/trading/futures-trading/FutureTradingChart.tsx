@@ -18,6 +18,8 @@ interface FutureTradingChartProps {
   low24h?: number;
   marketInfo?: {
     usd?: number;
+    price?: number;
+    value?: number;
     change24h?: number;
     high24h?: number;
     low24h?: number;
@@ -37,40 +39,110 @@ export default React.memo(function FutureTradingChart({
   marketInfo,
 }: FutureTradingChartProps) {
   const getTradingViewSymbol = (sym: string) => {
-    const s = sym.toUpperCase();
-    const base = s.split("/")[0] || s;
-    const quote = s.split("/")[1] || "USDT";
+    if (!sym) return "BINANCE:BTCUSDT";
+    if (sym.includes(":")) return sym.toUpperCase();
 
+    const s = sym.toUpperCase();
+    const hasSlash = s.includes("/");
+    const base = hasSlash ? s.split("/")[0] : s;
+    const quote = hasSlash ? s.split("/")[1] : "";
+
+    // Verified TradingView symbol mappings
     const mappings: Record<string, string> = {
+      // ═══════════════════════════════════════════════════════════════
+      // STOCKS (from backend: AAPL, MSFT, GOOGL, AMZN, NVDA, META, TSLA, BRK_B, LLY, V)
+      // ═══════════════════════════════════════════════════════════════
       AAPL: "NASDAQ:AAPL",
       MSFT: "NASDAQ:MSFT",
       GOOGL: "NASDAQ:GOOGL",
       AMZN: "NASDAQ:AMZN",
-      TSLA: "NASDAQ:TSLA",
+      NVDA: "NASDAQ:NVDA",
       META: "NASDAQ:META",
-      SPX: "SP:SPX",
-      INDU: "DJ:DJI",
-      CCMP: "NASDAQ:IXIC",
-      FTSE: "TVC:UKX",
-      DAX: "XETR:DAX",
+      TSLA: "NASDAQ:TSLA",
+      "BRK-B": "NYSE:BRK.B",
+      BRK_B: "NYSE:BRK.B",
+      LLY: "NYSE:LLY",
+      V: "NYSE:V",
+
+      // ═══════════════════════════════════════════════════════════════
+      // COMMODITIES (from backend: GOLD, SILVER, OIL, NATGAS, COPPER, PLATINUM, PALLADIUM, WHEAT, CORN, COFFEE)
+      // Using OANDA and CAPITALCOM for reliable free widget support
+      // ═══════════════════════════════════════════════════════════════
       GOLD: "OANDA:XAUUSD",
       SILVER: "OANDA:XAGUSD",
-      OIL: "TVC:USOIL",
-      NATGAS: "TVC:NATGAS",
-      COPPER: "COMEX:HG1!"
+      OIL: "BLACKBULL:WTI",
+      NATGAS: "CAPITALCOM:NATURALGAS",
+      COPPER: "CAPITALCOM:COPPER",
+      PLATINUM: "OANDA:XPTUSD",
+      PALLADIUM: "OANDA:XPDUSD",
+      WHEAT: "CAPITALCOM:WHEAT",
+      CORN: "CAPITALCOM:CORN",
+      COFFEE: "PEPPERSTONE:COFFEE",
+
+      // ═══════════════════════════════════════════════════════════════
+      // FOREX (from backend: EURUSD, GBPUSD, USDJPY, AUDUSD, USDCAD, CHFJPY, EURGBP, EURJPY, USDCHF, NZDUSD)
+      // ═══════════════════════════════════════════════════════════════
+      EURUSD: "FX:EURUSD",
+      GBPUSD: "FX:GBPUSD",
+      USDJPY: "FX:USDJPY",
+      AUDUSD: "FX:AUDUSD",
+      USDCAD: "FX:USDCAD",
+      CHFJPY: "FX:CHFJPY",
+      EURGBP: "FX:EURGBP",
+      EURJPY: "FX:EURJPY",
+      USDCHF: "FX:USDCHF",
+      NZDUSD: "FX:NZDUSD",
+
+      // ═══════════════════════════════════════════════════════════════
+      // INDICES
+      // Using OANDA, TVC, INDEX for 100% reliable free widget support
+      // ═══════════════════════════════════════════════════════════════
+      "^GSPC": "OANDA:SPX500USD", SPX: "OANDA:SPX500USD", SP500: "OANDA:SPX500USD",
+      "^DJI": "OANDA:US30USD", DJI: "OANDA:US30USD",
+      "^IXIC": "OANDA:NAS100USD", IXIC: "OANDA:NAS100USD", NASDAQ: "OANDA:NAS100USD",
+      "^NYA": "INDEX:NYA", "^RUT": "OANDA:US2000USD", RUT: "OANDA:US2000USD",
+      "^FTSE": "OANDA:UK100GBP", FTSE: "OANDA:UK100GBP", "^FTMC": "TVC:MCX",
+      "^GDAXI": "TVC:DE40", GDAXI: "TVC:DE40",
+      "^FCHI": "OANDA:FR40EUR", FCHI: "OANDA:FR40EUR",
+      "^STOXX50E": "TVC:EU50", STOXX50E: "TVC:EU50",
+      "^IBEX": "TVC:ES35", IBEX: "TVC:ES35",
+      "^N225": "OANDA:JP225USD", N225: "OANDA:JP225USD",
+      "^TOPX": "TSE:TOPIX", "000001.SS": "SSE:000001",
+      "^HSI": "OANDA:HK33HKD", HSI: "OANDA:HK33HKD",
+      "399001.SZ": "SZSE:399001", "^NSEI": "NSE:NIFTY", NSEI: "NSE:NIFTY",
+      "^BSESN": "BSE:SENSEX", BSESN: "BSE:SENSEX", "^KSE": "PSX:KSE100", KSE: "PSX:KSE100",
+      "^AXJO": "OANDA:AU200AUD", AXJO: "OANDA:AU200AUD", "^GSPTSE": "TSX:TSX", GSPTSE: "TSX:TSX",
+      URTH: "AMEX:URTH"
     };
 
+    // Check mappings first (prioritize exact matches for base symbol)
     if (mappings[base]) return mappings[base];
+    if (mappings[s]) return mappings[s];
 
-    if (["EUR", "GBP", "AUD", "JPY", "CAD", "CHF", "NZD"].includes(base)) {
-      return `FX:${base}${quote.replace("T", "")}`;
+    const cleanSym = s.replace('/', '');
+
+    // Check if cleanSym is in mappings (for forex pairs or other)
+    if (mappings[cleanSym]) return mappings[cleanSym];
+
+    // Forex pairs: 6 characters, common currency prefixes - use FX: prefix
+    const forexPrefixes = ["EUR", "GBP", "AUD", "JPY", "CAD", "CHF", "NZD", "USD"];
+    if (cleanSym.length === 6 && forexPrefixes.some(prefix => cleanSym.startsWith(prefix))) {
+      return `FX:${cleanSym}`;
     }
 
-    if (quote.includes("USD")) {
-      return `BINANCE:${base}USDT`;
+    // Crypto pairs with USDT/USD quote
+    if (quote) {
+      if (quote === "USDT" || quote === "USD") {
+        return `BINANCE:${base}USDT`;
+      }
+      return `BINANCE:${cleanSym}`;
     }
 
-    return s.replace("/", "");
+    if (cleanSym.endsWith("USDT") || cleanSym.endsWith("USD")) {
+      return `BINANCE:${cleanSym.endsWith("USD") ? cleanSym + "T" : cleanSym}`;
+    }
+
+    return base.replace('^', '');
   };
 
   const tvSymbol = getTradingViewSymbol(symbol);
@@ -83,7 +155,7 @@ export default React.memo(function FutureTradingChart({
   };
 
   const calcPreviousClose = () => {
-    const price = marketInfo?.usd;
+    const price = ((marketInfo?.usd ?? marketInfo?.price ?? marketInfo?.value) ?? marketInfo?.price ?? marketInfo?.value);
     const change = marketInfo?.change24h;
     if (price === undefined || change === undefined) return undefined;
     return price / (1 + change / 100);
@@ -137,8 +209,8 @@ export default React.memo(function FutureTradingChart({
               <InfoRow
                 label="Price"
                 value={
-                  marketInfo?.usd
-                    ? formatPrice(marketInfo.usd)
+                  (marketInfo?.usd ?? marketInfo?.price ?? marketInfo?.value)
+                    ? formatPrice(marketInfo.usd || marketInfo.price || marketInfo.value)
                     : "N/A"
                 }
               />
