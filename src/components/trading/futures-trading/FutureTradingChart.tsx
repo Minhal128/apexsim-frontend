@@ -37,97 +37,35 @@ export default React.memo(function FutureTradingChart({
   coinImage,
   coinName = "Bitcoin",
   marketInfo,
+  currentPrice,
+  high24h,
+  low24h,
 }: FutureTradingChartProps) {
   const getTradingViewSymbol = (sym: string) => {
     if (!sym) return "BINANCE:BTCUSDT";
-    if (sym.includes(":")) return sym.toUpperCase();
 
-    const s = sym.toUpperCase();
-    const hasSlash = s.includes("/");
-    const base = hasSlash ? s.split("/")[0] : s;
-    const quote = hasSlash ? s.split("/")[1] : "";
+    // Check indices/forex
+    if (sym === "VIX" || sym === "^VIX") return "CBOE:VIX";
+    if (sym === "^RUT") return "CBOE:VIX"; // fallback
+    if (sym === "SPX" || sym === "SPY" || sym === "^SPX") return "SP:SPX";
+    if (sym === "NDX" || sym === "^NDX") return "NDX:NDX"; // etc
+    if (sym === "DXY" || sym === "^DXY") return "TVC:DXY";
+    if (sym === "DJI" || sym === "^DJI") return "DJ:DJI";
 
-    // Verified TradingView symbol mappings
-    const mappings: Record<string, string> = {
-      // ═══════════════════════════════════════════════════════════════
-      // STOCKS (from backend: AAPL, MSFT, GOOGL, AMZN, NVDA, META, TSLA, BRK_B, LLY, V)
-      // ═══════════════════════════════════════════════════════════════
-      AAPL: "NASDAQ:AAPL",
-      MSFT: "NASDAQ:MSFT",
-      GOOGL: "NASDAQ:GOOGL",
-      AMZN: "NASDAQ:AMZN",
-      NVDA: "NASDAQ:NVDA",
-      META: "NASDAQ:META",
-      TSLA: "NASDAQ:TSLA",
-      "BRK-B": "NYSE:BRK.B",
-      BRK_B: "NYSE:BRK.B",
-      LLY: "NYSE:LLY",
-      V: "NYSE:V",
-
-      // ═══════════════════════════════════════════════════════════════
-      // COMMODITIES (from backend: GOLD, SILVER, OIL, NATGAS, COPPER, PLATINUM, PALLADIUM, WHEAT, CORN, COFFEE)
-      // Using OANDA and CAPITALCOM for reliable free widget support
-      // ═══════════════════════════════════════════════════════════════
-      GOLD: "OANDA:XAUUSD",
-      SILVER: "OANDA:XAGUSD",
-      OIL: "BLACKBULL:WTI",
-      NATGAS: "CAPITALCOM:NATURALGAS",
-      COPPER: "CAPITALCOM:COPPER",
-      PLATINUM: "OANDA:XPTUSD",
-      PALLADIUM: "OANDA:XPDUSD",
-      WHEAT: "CAPITALCOM:WHEAT",
-      CORN: "CAPITALCOM:CORN",
-      COFFEE: "PEPPERSTONE:COFFEE",
-
-      // ═══════════════════════════════════════════════════════════════
-      // FOREX (from backend: EURUSD, GBPUSD, USDJPY, AUDUSD, USDCAD, CHFJPY, EURGBP, EURJPY, USDCHF, NZDUSD)
-      // ═══════════════════════════════════════════════════════════════
-      EURUSD: "FX:EURUSD",
-      GBPUSD: "FX:GBPUSD",
-      USDJPY: "FX:USDJPY",
-      AUDUSD: "FX:AUDUSD",
-      USDCAD: "FX:USDCAD",
-      CHFJPY: "FX:CHFJPY",
-      EURGBP: "FX:EURGBP",
-      EURJPY: "FX:EURJPY",
-      USDCHF: "FX:USDCHF",
-      NZDUSD: "FX:NZDUSD",
-
-      // ═══════════════════════════════════════════════════════════════
-      // INDICES
-      // Using OANDA, TVC, INDEX for 100% reliable free widget support
-      // ═══════════════════════════════════════════════════════════════
-      "^GSPC": "OANDA:SPX500USD", SPX: "OANDA:SPX500USD", SP500: "OANDA:SPX500USD",
-      "^DJI": "OANDA:US30USD", DJI: "OANDA:US30USD",
-      "^IXIC": "OANDA:NAS100USD", IXIC: "OANDA:NAS100USD", NASDAQ: "OANDA:NAS100USD",
-      "^NYA": "INDEX:NYA", "^RUT": "OANDA:US2000USD", RUT: "OANDA:US2000USD",
-      "^FTSE": "OANDA:UK100GBP", FTSE: "OANDA:UK100GBP", "^FTMC": "TVC:MCX",
-      "^GDAXI": "TVC:DE40", GDAXI: "TVC:DE40",
-      "^FCHI": "OANDA:FR40EUR", FCHI: "OANDA:FR40EUR",
-      "^STOXX50E": "TVC:EU50", STOXX50E: "TVC:EU50",
-      "^IBEX": "TVC:ES35", IBEX: "TVC:ES35",
-      "^N225": "OANDA:JP225USD", N225: "OANDA:JP225USD",
-      "^TOPX": "TSE:TOPIX", "000001.SS": "SSE:000001",
-      "^HSI": "OANDA:HK33HKD", HSI: "OANDA:HK33HKD",
-      "399001.SZ": "SZSE:399001", "^NSEI": "NSE:NIFTY", NSEI: "NSE:NIFTY",
-      "^BSESN": "BSE:SENSEX", BSESN: "BSE:SENSEX", "^KSE": "PSX:KSE100", KSE: "PSX:KSE100",
-      "^AXJO": "OANDA:AU200AUD", AXJO: "OANDA:AU200AUD", "^GSPTSE": "TSX:TSX", GSPTSE: "TSX:TSX",
-      URTH: "AMEX:URTH"
-    };
-
-    // Check mappings first (prioritize exact matches for base symbol)
-    if (mappings[base]) return mappings[base];
-    if (mappings[s]) return mappings[s];
-
-    const cleanSym = s.replace('/', '');
-
-    // Check if cleanSym is in mappings (for forex pairs or other)
-    if (mappings[cleanSym]) return mappings[cleanSym];
-
-    // Forex pairs: 6 characters, common currency prefixes - use FX: prefix
-    const forexPrefixes = ["EUR", "GBP", "AUD", "JPY", "CAD", "CHF", "NZD", "USD"];
-    if (cleanSym.length === 6 && forexPrefixes.some(prefix => cleanSym.startsWith(prefix))) {
+    let cleanSym = sym.replace('/', '').toUpperCase();
+    const isForex = /^[A-Z]{6}$/.test(cleanSym) && !cleanSym.includes("USDT") && !cleanSym.includes("BTC") && !cleanSym.includes("ETH");
+    if (isForex) {
       return `FX:${cleanSym}`;
+    }
+
+    let base = sym;
+    let quote = "";
+    if (sym.includes('/')) {
+      const parts = sym.split('/');
+      base = parts[0].toUpperCase();
+      quote = parts[1].toUpperCase();
+    } else {
+      base = cleanSym;
     }
 
     // Crypto pairs with USDT/USD quote
@@ -135,14 +73,14 @@ export default React.memo(function FutureTradingChart({
       if (quote === "USDT" || quote === "USD") {
         return `BINANCE:${base}USDT`;
       }
-      return `BINANCE:${cleanSym}`;
+      return `BINANCE:${base}${quote}`;
     }
 
     if (cleanSym.endsWith("USDT") || cleanSym.endsWith("USD")) {
-      return `BINANCE:${cleanSym.endsWith("USD") ? cleanSym + "T" : cleanSym}`;
+      return `BINANCE:${cleanSym}`;
     }
 
-    return base.replace('^', '');
+    return cleanSym.replace('^', '');
   };
 
   const tvSymbol = getTradingViewSymbol(symbol);
@@ -154,9 +92,32 @@ export default React.memo(function FutureTradingChart({
     return `$${parsed.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 })}`;
   };
 
+  const [quoteData, setQuoteData] = React.useState<any>(null);
+
+  const fetchBackendData = async () => {
+    try {
+      const res = await fetch('https://apexsim-backend.vercel.app/market/prices');
+      const data = await res.json();
+      const baseSymbol = symbol.split('/')[0];
+      
+      const exactMatch = data[baseSymbol] || data[baseSymbol.toUpperCase()] || data[baseSymbol.replace('^', '')] || data[`^${baseSymbol}`];
+      if (exactMatch) {
+         setQuoteData(exactMatch);
+      }
+    } catch (error) {
+      console.error("Error fetching max data:", error);
+    }
+  };
+
+  React.useEffect(() => {
+    if (activeView === "info") {
+      fetchBackendData();
+    }
+  }, [activeView, symbol]);
+
   const calcPreviousClose = () => {
-    const price = ((marketInfo?.usd ?? marketInfo?.price ?? marketInfo?.value) ?? marketInfo?.price ?? marketInfo?.value);
-    const change = marketInfo?.change24h;
+    const price = ((marketInfo?.usd ?? marketInfo?.price ?? marketInfo?.value) ?? currentPrice ?? quoteData?.usd ?? quoteData?.price ?? quoteData?.value ?? quoteData?.regularMarketPrice);
+    const change = marketInfo?.change24h ?? quoteData?.usd_24h_change ?? quoteData?.change24h ?? quoteData?.regularMarketChangePercent;
     if (price === undefined || change === undefined) return undefined;
     return price / (1 + change / 100);
   };
@@ -209,9 +170,11 @@ export default React.memo(function FutureTradingChart({
               <InfoRow
                 label="Price"
                 value={
-                  (marketInfo?.usd ?? marketInfo?.price ?? marketInfo?.value)
-                    ? formatPrice(marketInfo.usd || marketInfo.price || marketInfo.value)
-                    : "N/A"
+                  (marketInfo?.usd ?? marketInfo?.price ?? marketInfo?.value) !== undefined
+                    ? formatPrice((marketInfo?.usd ?? marketInfo?.price ?? marketInfo?.value))
+                    : quoteData?.usd ?? quoteData?.price ?? quoteData?.value ?? quoteData?.regularMarketPrice
+                    ? formatPrice(quoteData.usd || quoteData.price || quoteData.value || quoteData.regularMarketPrice)
+                    : currentPrice ? formatPrice(currentPrice) : "N/A"
                 }
               />
               <InfoRow
@@ -219,7 +182,8 @@ export default React.memo(function FutureTradingChart({
                 value={
                   marketInfo?.change24h !== undefined && marketInfo?.change24h !== null
                     ? `${marketInfo.change24h.toFixed(2)}%`
-                    : "N/A"
+                    : quoteData?.usd_24h_change !== undefined || quoteData?.change24h !== undefined || quoteData?.regularMarketChangePercent !== undefined
+                    ? `${(quoteData.usd_24h_change ?? quoteData.change24h ?? quoteData.regularMarketChangePercent).toFixed(2)}%` : "N/A"
                 }
               />
               <InfoRow
@@ -231,7 +195,8 @@ export default React.memo(function FutureTradingChart({
                 value={
                   marketInfo?.high24h
                     ? formatPrice(marketInfo.high24h)
-                    : "N/A"
+                    : quoteData?.high24h ?? quoteData?.regularMarketDayHigh
+                    ? formatPrice(quoteData?.high24h ?? quoteData?.regularMarketDayHigh) : "N/A"
                 }
               />
               <InfoRow
@@ -239,7 +204,8 @@ export default React.memo(function FutureTradingChart({
                 value={
                   marketInfo?.low24h
                     ? formatPrice(marketInfo.low24h)
-                    : "N/A"
+                    : quoteData?.low24h ?? quoteData?.regularMarketDayLow
+                    ? formatPrice(quoteData?.low24h ?? quoteData?.regularMarketDayLow) : "N/A"
                 }
               />
             </div>

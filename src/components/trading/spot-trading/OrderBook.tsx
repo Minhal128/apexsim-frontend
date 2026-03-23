@@ -57,12 +57,14 @@ const ORDER_DATA = [
     { price: 19966.52, amount: "0.00250", total: "49.91630", depth: 4, type: 'buy' },
 ];
 
-export default function OrderBook({ symbol = "BTC/USDT" }: { symbol?: string }) {
+export default function OrderBook({ symbol = "BTC/USDT", currentPrice }: { symbol?: string; currentPrice?: number }) {
     const [activeTab, setActiveTab] = useState<'liquidity' | 'trades'>('liquidity');
     const [precision, setPrecision] = useState('0.01');
     const [showPrecisionMenu, setShowPrecisionMenu] = useState(false);
 
     const precisionOptions = ['0.1', '0.01', '0.001'];
+    
+    const basePriceOffset = currentPrice ? currentPrice - 19967 : 0;
 
     return (
         <div className="w-full md:w-[320px] flex flex-col bg-[#181818] border-x border-white/5 h-full select-none">
@@ -158,13 +160,13 @@ export default function OrderBook({ symbol = "BTC/USDT" }: { symbol?: string }) 
                                     style={{ width: `${item.depth}%` }}
                                 />
                                 <span className={`font-medium z-10 ${item.type === 'sell' ? 'text-[#F6465D]' : 'text-[#2EBD85]'}`}>
-                                    {(Math.floor(item.price / parseFloat(precision)) * parseFloat(precision)).toFixed(precision.split('.')[1]?.length || 0)}
+                                      {(Math.floor((item.price + basePriceOffset) / parseFloat(precision)) * parseFloat(precision)).toFixed(precision.split('.')[1]?.length || 0)}
                                 </span>
                                 <span className="text-right text-[#c9ccd0] z-10 font-medium tracking-tight">
                                     {item.amount}
                                 </span>
                                 <span className="text-right text-[#848e9c] z-10 font-medium tabular-nums">
-                                    {item.total}
+                                      {((item.price + basePriceOffset) * parseFloat(item.amount)).toLocaleString('en-US', { minimumFractionDigits: 5, maximumFractionDigits: 5 })}
                                 </span>
                             </div>
                         ))}
@@ -185,7 +187,7 @@ export default function OrderBook({ symbol = "BTC/USDT" }: { symbol?: string }) 
                                 className="grid grid-cols-3 text-[11px] py-[2.5px] px-3 hover:bg-white/5 cursor-pointer"
                             >
                                 <span className={`font-medium ${item.side === 'sell' ? 'text-[#F6465D]' : 'text-[#2EBD85]'}`}>
-                                    {item.price.toFixed(2)}
+                                      {(item.price + basePriceOffset).toFixed(2)}
                                 </span>
                                 <span className="text-right text-[#c9ccd0] font-medium tracking-tight">
                                     {item.amount}

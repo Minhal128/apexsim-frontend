@@ -12,9 +12,10 @@ type OrderType = "Limit" | "Market" | "Stop limit";
 
 interface TradeFormProps {
   symbol?: string;
+  currentPrice?: number;
 }
 
-export default function TradeForm({ symbol = "BTC/USDT" }: TradeFormProps) {
+export default function TradeForm({ symbol = "BTC/USDT", currentPrice }: TradeFormProps) {
   const toast = useToast();
   const router = useRouter();
   const [isSettingOpen, setIsSettingOpen] = useState(false);
@@ -53,6 +54,7 @@ export default function TradeForm({ symbol = "BTC/USDT" }: TradeFormProps) {
   };
 
   const fetchMarketPrice = async () => {
+    if (currentPrice && currentPrice > 0) return; // skip if we have prop 
     try {
       const prices = await apiRequest("/market/prices");
       const assetBase = symbol.split('/')[0];
@@ -67,11 +69,23 @@ export default function TradeForm({ symbol = "BTC/USDT" }: TradeFormProps) {
   };
 
   useEffect(() => {
+    if (currentPrice && currentPrice > 0) {
+        setCurrentMarketPrice(currentPrice.toString());
+        if (orderType !== "Market" && (!price || parseFloat(price) === 0)) {
+            setPrice(currentPrice.toString());
+        }
+    }
+  }, [currentPrice, orderType, price]);
+
+  useEffect(() => {
     fetchBalances();
-    fetchMarketPrice();
+    // Reset inputs when switching symbols so new prices can snap in
+    setPrice("");
     setAmount("");
     setTotal("");
 
+    fetchMarketPrice();
+    
     const socket = initializeSocket();
     if (!socket) return;
     

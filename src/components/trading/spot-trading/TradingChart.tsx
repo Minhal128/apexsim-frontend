@@ -33,10 +33,14 @@ interface TradingChartProps {
     usd?: number;
     price?: number;
     value?: number;
+    regularMarketPrice?: number;
     usd_24h_change?: number;
     change24h?: number;
+    regularMarketChangePercent?: number;
     high24h?: number;
+    regularMarketDayHigh?: number;
     low24h?: number;
+    regularMarketDayLow?: number;
     volume24h?: number;
   };
 }
@@ -161,26 +165,40 @@ export default function TradingChart({
 
   const tvSymbol = getTradingViewSymbol(symbol);
 
+  const fetchBackendData = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch('https://apexsim-backend.vercel.app/market/prices');
+      const data = await res.json();
+      const baseSymbol = symbol.split('/')[0];
+      
+      // Match exact, uppercase, or without caret
+      const exactMatch = data[baseSymbol] || data[baseSymbol.toUpperCase()] || data[baseSymbol.replace('^', '')] || data[`^${baseSymbol}`];
+      
+      if (exactMatch) {
+         setQuoteData({
+           symbol: baseSymbol,
+           name: exactMatch.name || baseSymbol,
+           close: (exactMatch.usd || exactMatch.price || exactMatch.value || exactMatch.regularMarketPrice)?.toString(),
+           change: '0',
+           percent_change: (exactMatch.usd_24h_change || exactMatch.change24h || exactMatch.regularMarketChangePercent || exactMatch.changePercent)?.toString(),
+           previous_close: '0',
+           fifty_two_week: {
+              low: (exactMatch.low24h || exactMatch.regularMarketDayLow)?.toString() || '0',
+              high: (exactMatch.high24h || exactMatch.regularMarketDayHigh)?.toString() || '0'
+           }
+         } as any);
+      }
+    } catch (error) {
+      console.error("Error fetching backend data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (activeTab === "info") {
-      const fetchTwelveData = async () => {
-        try {
-          setLoading(true);
-          const baseSymbol = symbol.split('/')[0];
-          // Use baseSymbol/USD for Twelve Data as fiat pairs are widely supported
-          const tdSymbol = `${baseSymbol}/USD`;
-          const res = await fetch(`https://api.twelvedata.com/quote?symbol=${tdSymbol}&apikey=9e733d2d46d5412bb217e815edd25816`);
-          const data = await res.json();
-          if (data && !data.code) { // Twelve Data returns error inside 'code'
-            setQuoteData(data);
-          }
-        } catch (error) {
-          console.error("Error fetching Twelve Data:", error);
-        } finally {
-          setLoading(false);
-        }
-      };
-      fetchTwelveData();
+      fetchBackendData();
     }
   }, [activeTab, symbol]);
 
@@ -238,16 +256,16 @@ export default function TradingChart({
                   <InfoRow
                     label="Price"
                     value={
-                      (marketInfo?.usd ?? marketInfo?.price ?? marketInfo?.value) !== undefined
-                        ? `$${(marketInfo?.usd ?? marketInfo?.price ?? marketInfo?.value)!.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 })}`
+                      (marketInfo?.usd ?? marketInfo?.price ?? marketInfo?.value ?? marketInfo?.regularMarketPrice) !== undefined && (marketInfo?.usd ?? marketInfo?.price ?? marketInfo?.value ?? marketInfo?.regularMarketPrice) !== null
+                        ? `$${(marketInfo?.usd ?? marketInfo?.price ?? marketInfo?.value ?? marketInfo?.regularMarketPrice)!.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 })}`
                         : formatPrice(quoteData?.close)
                     }
                   />
                   <InfoRow
                     label="24h Change"
                     value={
-                      (marketInfo?.usd_24h_change ?? marketInfo?.change24h) !== undefined && (marketInfo?.usd_24h_change ?? marketInfo?.change24h) !== null
-                        ? `${(marketInfo?.usd_24h_change ?? marketInfo?.change24h)!.toFixed(2)}%`
+                      (marketInfo?.usd_24h_change ?? marketInfo?.change24h ?? marketInfo?.regularMarketChangePercent) !== undefined && (marketInfo?.usd_24h_change ?? marketInfo?.change24h ?? marketInfo?.regularMarketChangePercent) !== null
+                        ? `${(marketInfo?.usd_24h_change ?? marketInfo?.change24h ?? marketInfo?.regularMarketChangePercent)!.toFixed(2)}%`
                         : quoteData?.percent_change
                         ? `${parseFloat(quoteData.percent_change).toFixed(2)}%`
                         : 'N/A'
@@ -256,24 +274,24 @@ export default function TradingChart({
                   <InfoRow
                     label="Previous Close"
                     value={
-                      (marketInfo?.usd ?? marketInfo?.price ?? marketInfo?.value) !== undefined && (marketInfo?.usd_24h_change ?? marketInfo?.change24h) !== undefined
-                        ? formatPrice(String((marketInfo?.usd ?? marketInfo?.price ?? marketInfo?.value)! - ((marketInfo?.usd_24h_change ?? marketInfo?.change24h)! / 100) * (marketInfo?.usd ?? marketInfo?.price ?? marketInfo?.value)!))
+                      (marketInfo?.usd ?? marketInfo?.price ?? marketInfo?.value ?? marketInfo?.regularMarketPrice) !== undefined && (marketInfo?.usd_24h_change ?? marketInfo?.change24h ?? marketInfo?.regularMarketChangePercent) !== undefined
+                        ? formatPrice(String((marketInfo?.usd ?? marketInfo?.price ?? marketInfo?.value ?? marketInfo?.regularMarketPrice)! - ((marketInfo?.usd_24h_change ?? marketInfo?.change24h ?? marketInfo?.regularMarketChangePercent)! / 100) * (marketInfo?.usd ?? marketInfo?.price ?? marketInfo?.value ?? marketInfo?.regularMarketPrice)!))
                         : formatPrice(quoteData?.previous_close)
                     }
                   />
                   <InfoRow
                     label="24h High"
                     value={
-                      marketInfo?.high24h
-                        ? `$${marketInfo.high24h.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 })}`
+                      (marketInfo?.high24h ?? marketInfo?.regularMarketDayHigh)
+                        ? `$${(marketInfo.high24h ?? marketInfo.regularMarketDayHigh)?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 })}`
                         : formatPrice(quoteData?.fifty_two_week?.high)
                     }
                   />
                   <InfoRow
                     label="24h Low"
                     value={
-                      marketInfo?.low24h
-                        ? `$${marketInfo.low24h.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 })}`
+                      (marketInfo?.low24h ?? marketInfo?.regularMarketDayLow)
+                        ? `$${(marketInfo.low24h ?? marketInfo.regularMarketDayLow)?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 })}`
                         : formatPrice(quoteData?.fifty_two_week?.low)
                     }
                   />

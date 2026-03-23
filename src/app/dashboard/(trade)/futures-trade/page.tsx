@@ -1,5 +1,6 @@
 "use client";
-import { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, useRef, useCallback, Suspense } from 'react';
+import { createPortal } from 'react-dom';
 import { useSearchParams, useRouter } from 'next/navigation';
 import OrderBook from '@/components/trading/futures-trading/FutureTradingBook';
 import TradeForm from '@/components/trading/futures-trading/FutureTradingForm';
@@ -9,6 +10,17 @@ import CoinSelector from '@/components/trading/futures-trading/CoinSelector';
 import { initializeSocket } from '@/lib/socket';
 import { apiRequest } from '@/lib/api';
 import { useToast } from '@/components/ToastContext';
+
+
+interface CoinInfo {
+  id: string;
+  symbol: string;
+  name: string;
+  image: string;
+  current_price: number;
+  price_change_percentage_24h: number;
+  market_cap_rank: number;
+}
 
 function FutureTradingPageContent() {
   const toast = useToast();
@@ -22,45 +34,45 @@ function FutureTradingPageContent() {
   // For crypto: BTC/USDT -> BTC, for others: GOLD -> GOLD
   const assetBase = assetParam.includes('/') ? assetParam.split('/')[0] : assetParam;
 
+  // Coin dropdown state
+  const [coins, setCoins]               = useState<CoinInfo[]>([]);
+  const [coinsLoading, setCoinsLoading] = useState(true);
+  const [category, setCategory] = useState(categoryParam || 'crypto');
+  const categories = ['crypto', 'forex', 'commodities', 'indices', 'stocks'];
+  const [selectedCoin, setSelectedCoin] = useState<CoinInfo>({
+    id: assetBase.toLowerCase(),
+    symbol: assetBase.toLowerCase(),
+    name: assetBase,
+    image: `https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/${assetBase.toLowerCase().replace('^', '')}.png`,
+    current_price: 0,
+    price_change_percentage_24h: 0,
+    market_cap_rank: 1,
+  });
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [searchQuery,  setSearchQuery]  = useState('');
+  const [dropdownPos,  setDropdownPos]  = useState({ top: 0, left: 0, width: 288 });
+
+  // Refs — trigger button for measuring, overlay div for outside-click
+  const triggerRef  = useRef<HTMLButtonElement>(null);
+  const overlayRef  = useRef<HTMLDivElement>(null);
+
   const [marketInfo, setMarketInfo] = useState<any>(null);
 
   useEffect(() => {
-    // Reset market info when asset changes
+    let mounted = true;
     setMarketInfo(null);
     
     const fetchMarketData = async () => {
       try {
-        // Try backend first
         const data = await apiRequest("/market/prices");
-        if (data && data[assetBase] && (data[assetBase].usd || data[assetBase].price || data[assetBase].value) > 0) {
-          setMarketInfo(data[assetBase]);
-          return;
+        if (!mounted) return;
+        
+        const match = data[assetBase] || data[assetBase.toUpperCase()] || data[`^${assetBase}`] || data[assetBase.replace('^', '')];
+        if (match) {
+          setMarketInfo(match);
         }
       } catch (err) {
-        console.error("Backend market data failed, trying public API fallout...");
-      }
-
-      // Secondary Fallback: Direct Public CoinGecko fetch (Only for price/change)
-      try {
-        const coinMapping: { [key: string]: string } = {
-          'BTC': 'bitcoin', 'ETH': 'ethereum', 'SOL': 'solana', 'USDT': 'tether'
-        };
-        const coinId = coinMapping[assetBase] || 'bitcoin';
-        const resp = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${coinId}&vs_currencies=usd&include_24hr_change=true&include_24hr_vol=true&include_24hr_high_low=true`);
-        const data = await resp.json();
-        
-        if (data[coinId]) {
-          setMarketInfo({
-            usd: data[coinId].usd || data[coinId].price || data[coinId].value,
-            change24h: data[coinId].usd_24h_change,
-            high24h: data[coinId].usd_24h_high || data[coinId].usd * 1.02,
-            low24h: data[coinId].usd_24h_low || data[coinId].usd * 0.98,
-            volume24h: data[coinId].usd_24h_vol || 0,
-            image: `https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/${assetBase.toLowerCase()}.png`
-          });
-        }
-      } catch (e) {
-        console.error("Critical: All market data sources failed", e);
+        console.error("Backend market data failed", err);
       }
     };
 
@@ -70,17 +82,19 @@ function FutureTradingPageContent() {
     socket.emit('subscribe-market', categoryParam.toLowerCase());
     
     const handler = (data: any) => {
-      if (data && data[assetBase] && (data[assetBase].usd || data[assetBase].price || data[assetBase].value) > 0) {
-        setMarketInfo(data[assetBase]);
+      const match = data[assetBase] || data[assetBase.toUpperCase()] || data[`^${assetBase}`] || data[assetBase.replace('^', '')];
+      if (match && (match.usd || match.price || match.value || match.regularMarketPrice) > 0) {
+        setMarketInfo(match);
       }
     };
 
     socket.on('market-data', handler);
     socket.on('market-update', handler);
 
-    const interval = setInterval(fetchMarketData, 10000); // 10s fallback
+    const interval = setInterval(fetchMarketData, 5000); // 5s fallback
 
     return () => {
+      mounted = false;
       socket.off('market-data', handler);
       socket.off('market-update', handler);
       clearInterval(interval);
@@ -110,6 +124,95 @@ function FutureTradingPageContent() {
 
   };
 
+  
+  // Sync selectedCoin when URL asset changes
+  useEffect(() => {
+    const match = coins.find((c) => c.symbol.toLowerCase() === assetBase.toLowerCase());
+    if (match && match.symbol.toLowerCase() !== selectedCoin.symbol.toLowerCase()) {
+      setSelectedCoin(match);
+      setMarketInfo(null); // Reset market info for new asset
+    }
+  }, [assetBase, coins]);
+
+  // Fetch coins from backend or socket
+  useEffect(() => {
+    let mounted = true;
+    const socket = initializeSocket();
+    socket.emit('subscribe-market', category);
+    
+    const handleMarketData = (data: any) => {
+      const validData = Object.entries(data).filter(([_, details]: [string, any]) => (details.usd > 0 || details.price > 0 || details.value > 0 || details.regularMarketPrice > 0));
+      if (validData.length > 0) {
+        const formatted: CoinInfo[] = validData.map(([symbol, details]: [string, any]) => ({
+          id: symbol.toLowerCase(),
+          symbol: details.symbol || symbol.toUpperCase(),
+          name: details.name || details.pair || symbol,
+          current_price: details.usd || details.price || details.value || details.regularMarketPrice || 0,
+          price_change_percentage_24h: details.change24h || details.regularMarketChangePercent || 0,
+          image: details.image || `https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/${symbol.toLowerCase().replace('^', '')}.png`,
+          market_cap_rank: 1
+        }));
+        setCoins(formatted);
+        const match = formatted.find((c) => c.symbol.toLowerCase() === assetBase.toLowerCase());
+        if (match) setSelectedCoin(match);
+        setCoinsLoading(false);
+      }
+    };
+
+    apiRequest('/market/prices').then((data: any) => {
+      if (!mounted) return;
+      handleMarketData(data);
+    }).catch((e) => {
+      console.error("Failed to load initial market data", e);
+      setCoinsLoading(false);
+    });
+
+    socket.on('market-data', handleMarketData);
+    socket.on('market-update', handleMarketData);
+
+    return () => {
+      mounted = false;
+      socket.off('market-data', handleMarketData);
+      socket.off('market-update', handleMarketData);
+    };
+  }, [category, assetBase]); 
+
+  // Close dropdown when clicking outside the fixed overlay
+  useEffect(() => {
+    if (!dropdownOpen) return;
+    function handleOutside(e: MouseEvent) {
+      const target = e.target as Node;
+      const isInsideOverlay  = overlayRef.current?.contains(target);
+      const isInsideTrigger  = triggerRef.current?.contains(target);
+      if (!isInsideOverlay && !isInsideTrigger) {
+        setDropdownOpen(false);
+        setSearchQuery('');
+      }
+    }
+    document.addEventListener('mousedown', handleOutside);
+    return () => document.removeEventListener('mousedown', handleOutside);
+  }, [dropdownOpen]);
+
+  // Recalculate position when window resizes while open
+  useEffect(() => {
+    if (!dropdownOpen) return;
+    function onResize() {
+      if (!triggerRef.current) return;
+      const r = triggerRef.current.getBoundingClientRect();
+      setDropdownPos({ top: r.bottom + 6, left: r.left, width: Math.max(r.width, 288) });
+    }
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, [dropdownOpen]);
+
+  const openDropdown = useCallback(() => {
+    if (!triggerRef.current) return;
+    const r = triggerRef.current.getBoundingClientRect();
+    setDropdownPos({ top: r.bottom + 6, left: r.left, width: Math.max(r.width, 288) });
+    setDropdownOpen(true);
+    setSearchQuery('');
+  }, []);
+
   const [walletInfo, setWalletInfo] = useState<any>({
     total: "0.00",
     equity: "0.00",
@@ -136,6 +239,13 @@ function FutureTradingPageContent() {
   useEffect(() => {
     fetchWallet();
   }, []);
+
+  
+  const filteredCoins = coins.filter(
+    (c) =>
+      c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      c.symbol.toLowerCase().includes(searchQuery.toLowerCase()),
+  );
 
   const handleExecuteTrade = async (type: 'buy' | 'sell', amount: number, price: number) => {
     if (amount <= 0) {
@@ -166,72 +276,159 @@ function FutureTradingPageContent() {
   return (
     <div className="bg-[#181818] min-h-screen text-gray-300 font-manrope overflow-x-hidden">
 
-      <div className="flex items-center justify-between gap-4 md:px-4 px-4 md:py-5 py-3 border-b border-white/5 overflow-x-auto no-scrollbar">
-        <div className="flex items-center gap-6 shrink-0">
-          <div 
-            onClick={() => setIsSelectorOpen(true)}
-            className="flex items-center gap-2 min-w-fit cursor-pointer hover:bg-white/5 p-1 rounded-lg transition-colors"
+      <div className="flex items-center gap-4 md:px-4 px-6 md:py-4 py-2 border-b border-white/5 overflow-x-auto no-scrollbar">
+
+        {/* ── Coin Selector Dropdown ── */}
+        <div className="relative min-w-fit">
+          <button
+            ref={triggerRef}
+            onClick={dropdownOpen ? () => { setDropdownOpen(false); setSearchQuery(''); } : openDropdown}
+            className="flex items-center gap-2 bg-[#222] hover:bg-[#2a2a2a] border border-white/10 rounded-lg px-3 py-1.5 transition-colors"
           >
             <img
-              src={marketInfo?.image || getIconUrl(assetBase)}
-              className="md:w-6 md:h-6 w-5 h-5 rounded-full object-contain bg-white/5"
-              alt={assetBase.toLowerCase()}
-              onError={(e) => {
-                e.currentTarget.onerror = null;
-                e.currentTarget.src = `https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/${assetBase.toLowerCase()}.png`;
-              }}
+              src={selectedCoin.image}
+              alt={selectedCoin.name}
+              className="md:w-7 md:h-7 w-5 h-5 rounded-full"
+              onError={(e) => { e.currentTarget.src = `https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/${selectedCoin.symbol.toLowerCase()}.png`; }}
             />
-            <div className='flex items-center gap-1 whitespace-nowrap'>
-              <span className="text-white md:text-[16px] text-sm font-bold">{assetParam}</span>
-              <span className="text-[12px] text-gray-500 font-medium ml-1">{assetBase}</span>
-              <span className="text-gray-600 transition-transform group-hover:translate-y-0.5">▼</span>
+            <div className="flex flex-col items-start">
+              <span className="text-white md:text-sm text-xs font-bold leading-none">
+                {selectedCoin.symbol.toUpperCase()}{category === 'crypto' ? '/USDT' : ''}
+              </span>
+              <span className="text-gray-500 text-[10px] leading-none mt-0.5">{selectedCoin.name}</span>
             </div>
-          </div>
-          <div className="flex gap-6 items-center shrink-0">
-            <div className="whitespace-nowrap">
-              <p className={`text-[16px] font-bold ${!marketInfo ? 'text-gray-600' : ((marketInfo?.change24h ?? marketInfo?.regularMarketChangePercent ?? marketInfo?.usd_24h_change) || 0) >= 0 ? 'text-[#00B595]' : 'text-[#ef5350]'}`}>
-                {(marketInfo?.usd ?? marketInfo?.price ?? marketInfo?.value) ? (marketInfo.usd || marketInfo.price || marketInfo.value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'Loading...'}
-              </p>
-              <p className="text-gray-500 text-[11px] font-medium">
-                ${(marketInfo?.usd ?? marketInfo?.price ?? marketInfo?.value) ? (marketInfo.usd || marketInfo.price || marketInfo.value).toLocaleString() : '---'}
-              </p>
-            </div>
-            <div className="whitespace-nowrap">
-              <p className="text-gray-500 text-[11px]">24h Change</p>
-              <p className={`text-[13px] font-medium ${!marketInfo ? 'text-gray-600' : ((marketInfo?.change24h ?? marketInfo?.regularMarketChangePercent ?? marketInfo?.usd_24h_change) || 0) >= 0 ? 'text-[#00B595]' : 'text-[#ef5350]'}`}>
-                {(marketInfo?.change24h ?? marketInfo?.regularMarketChangePercent ?? marketInfo?.usd_24h_change) ? (marketInfo.change24h || marketInfo.regularMarketChangePercent || marketInfo.usd_24h_change).toFixed(2) : '0.00'}%
-              </p>
-            </div>
-            <div className="whitespace-nowrap">
-              <p className="text-gray-500 text-[11px]">24h High</p>
-              <p className="text-white text-[13px] font-medium">{(marketInfo?.high24h ?? marketInfo?.regularMarketDayHigh) ? (marketInfo.high24h || marketInfo.regularMarketDayHigh).toLocaleString() : '---'}</p>
-            </div>
-            <div className="whitespace-nowrap">
-              <p className="text-gray-500 text-[11px]">24h Low</p>
-              <p className="text-white text-[13px] font-medium">{(marketInfo?.low24h ?? marketInfo?.regularMarketDayLow) ? (marketInfo.low24h || marketInfo.regularMarketDayLow).toLocaleString() : '---'}</p>
-            </div>
-            <div className="whitespace-nowrap">
-              <p className="text-gray-500 text-[11px]">24h Vol ({assetBase})</p>
-              <p className="text-white text-[13px] font-medium">
-                {(marketInfo?.volume24h ?? marketInfo?.regularMarketVolume) && (marketInfo?.usd ?? marketInfo?.price ?? marketInfo?.value) 
-                  ? ((marketInfo.volume24h || marketInfo.regularMarketVolume) / (marketInfo.usd || marketInfo.price || marketInfo.value)).toLocaleString(undefined, { maximumFractionDigits: 0 }) 
-                  : '0'}
-              </p>
-            </div>
-            <div className="whitespace-nowrap">
-              <p className="text-gray-500 text-[11px]">24h Vol ({quoteParam})</p>
-              <p className="text-white text-[13px] font-medium">{(marketInfo?.volume24h ?? marketInfo?.regularMarketVolume) ? (marketInfo.volume24h || marketInfo.regularMarketVolume).toLocaleString(undefined, { maximumFractionDigits: 0 }) : '0'}</p>
-            </div>
-          </div>
+            <svg className={`w-3 h-3 text-gray-400 transition-transform ml-1 ${dropdownOpen ? 'rotate-180' : ''}`} fill="currentColor" viewBox="0 0 320 512">
+              <path d="M31.3 192h257.3c17.8 0 26.7 21.5 14.1 34.1L174.1 354.8c-7.8 7.8-20.5 7.8-28.3 0L17.2 226.1C4.6 213.5 13.5 192 31.3 192z" />
+            </svg>
+          </button>
+
+          {/* Portal — renders outside the overflow-clipping header */}
+          {dropdownOpen && typeof document !== 'undefined' && createPortal(
+            <div
+              ref={overlayRef}
+              style={{ position: 'fixed', top: dropdownPos.top, left: dropdownPos.left, width: dropdownPos.width, zIndex: 9999 }}
+              className="bg-[#1e1e1e] border border-white/10 rounded-xl shadow-2xl overflow-hidden"
+            >
+              {/* Categories */}
+              <div className="flex gap-2 p-2 overflow-x-auto no-scrollbar border-b border-white/10">
+                {categories.map((cat) => (
+                  <button
+                    key={cat}
+                    onClick={() => { setCategory(cat); setCoins([]); setCoinsLoading(true); }}
+                    className={`px-2 py-1 rounded-lg text-xs font-medium capitalize whitespace-nowrap transition-colors ${category === cat ? 'bg-[#f0b90b] text-black' : 'bg-white/5 text-gray-400 hover:text-white'}`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+              {/* Search */}
+              <div className="p-2 border-b border-white/10">
+                <input
+                  autoFocus
+                  type="search"
+                  placeholder="Search coin…"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck={false}
+                  name="coin-search"
+                  className="w-full bg-[#2a2a2a] text-white text-sm rounded-lg px-3 py-1.5 outline-none placeholder-gray-600 border border-white/10 focus:border-[#f0b90b]/50"
+                />
+              </div>
+
+              {/* Coin list */}
+              <div className="max-h-80 overflow-y-auto">
+                {coinsLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="w-5 h-5 border-2 border-[#f0b90b] border-t-transparent rounded-full animate-spin" />
+                  </div>
+                ) : filteredCoins.length === 0 ? (
+                  <p className="text-gray-500 text-sm text-center py-6">No results</p>
+                ) : (
+                  filteredCoins.map((coin) => (
+                    <button
+                      key={coin.id}
+                      onClick={() => {
+                        setSelectedCoin(coin);
+                        setDropdownOpen(false);
+                        setSearchQuery('');
+                        setMarketInfo(null);
+
+                        // Keep URL in sync so refresh/bookmarks keep the selected asset
+                        // For crypto use SYMBOL/USDT, for other categories just the symbol
+                        const assetValue = category === 'crypto' 
+                          ? `${coin.symbol.toUpperCase()}/USDT`
+                          : coin.symbol.toUpperCase();
+                        router.replace(`?asset=${assetValue}&category=${category}`);
+                      }}
+                      className={`w-full flex items-center gap-3 px-3 py-2.5 hover:bg-white/5 transition-colors ${
+                        coin.id === selectedCoin.id ? 'bg-[#f0b90b]/10' : ''
+                      }`}
+                    >
+                      <img
+                        src={coin.image}
+                        alt={coin.name}
+                        className="w-8 h-8 rounded-full flex-shrink-0"
+                        onError={(e) => { e.currentTarget.src = `https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/${coin.symbol.toLowerCase()}.png`; }}
+                      />
+                      <div className="flex flex-col items-start flex-1 min-w-0">
+                        <span className="text-white text-sm font-semibold leading-tight">
+                          {coin.symbol.toUpperCase()}{category === 'crypto' ? '/USDT' : ''}
+                        </span>
+                        <span className="text-gray-500 text-[11px] truncate w-full text-left leading-tight">{coin.name}</span>
+                      </div>
+                      <div className="flex flex-col items-end flex-shrink-0 gap-0.5">
+                        <span className="text-white text-xs font-medium">
+                          ${coin.current_price.toLocaleString()}
+                        </span>
+                        <span className={`text-[11px] font-medium ${(coin.price_change_percentage_24h ?? 0) >= 0 ? 'text-[#26a69a]' : 'text-[#ef5350]'}`}>
+                          {(coin.price_change_percentage_24h ?? 0) >= 0 ? '+' : ''}{coin.price_change_percentage_24h?.toFixed(2)}%
+                        </span>
+                      </div>
+                    </button>
+                  ))
+                )}
+              </div>
+            </div>,
+            document.body
+          )}
         </div>
 
-        <div className="flex items-center gap-4 lg:pr-20 shrink-0">
-          <div className="bg-[#262629]/50 px-4 py-2 rounded flex items-center gap-6 border border-white/5 whitespace-nowrap">
-            <div className="flex flex-col cursor-pointer"><span className="text-gray-500 text-[10px]">Total Balance</span><span className="text-white text-[15px] font-bold">${walletInfo.total}</span></div>
-            <div className="flex flex-col border-l border-white/10 pl-4 cursor-pointer"><span className="text-gray-500 text-[10px]">Equity</span><span className="text-white text-[15px] font-bold">${walletInfo.equity}</span></div>
-            <div className="flex flex-col border-l border-white/10 pl-4 cursor-pointer"><span className="text-gray-500 text-[10px]">Margin Used</span><span className="text-white text-[15px] font-bold">${walletInfo.marginUsed}</span></div>
-            <div className="flex flex-col border-l border-white/10 pl-4 cursor-pointer"><span className="text-gray-500 text-[10px]">Margin Level</span><span className="text-white text-[15px] font-bold">{walletInfo.marginLevel}</span></div>
-            <div className="flex flex-col border-l border-white/10 pl-4 cursor-pointer"><span className="text-gray-500 text-[10px]">Pnl</span><span className="text-[#0088FF] text-[15px] font-bold">{walletInfo.pnl >= 0 ? '+' : ''}${walletInfo.pnl}</span></div>
+        {/* Market Stats */}
+        <div className="flex gap-4 font-semibold text-[11px]">
+          <div>
+            <p className={`md:text-lg text-sm font-bold ${(marketInfo?.regularMarketChangePercent ?? marketInfo?.changePercent ?? marketInfo?.usd_24h_change ?? selectedCoin.price_change_percentage_24h) >= 0 ? 'text-[#26a69a]' : 'text-[#ef5350]'}`}>
+              ${(marketInfo?.price ?? marketInfo?.value ?? marketInfo?.usd ?? marketInfo?.regularMarketPrice ?? selectedCoin.current_price)?.toLocaleString() || '0.00'}
+            </p>
+            <p className="text-gray-500 text-[12px]">${(marketInfo?.price ?? marketInfo?.value ?? marketInfo?.usd ?? marketInfo?.regularMarketPrice ?? selectedCoin.current_price)?.toLocaleString() || '0.00'}</p>
+          </div>
+          <div>
+            <p className="text-gray-500 md:text-[12px] text-[10px]">24h Change</p>
+            <p className={`text-sm ${(marketInfo?.change24h ?? marketInfo?.regularMarketChangePercent ?? marketInfo?.usd_24h_change ?? selectedCoin.price_change_percentage_24h ?? 0) >= 0 ? 'text-[#26a69a]' : 'text-[#ef5350]'}`}>
+              {(marketInfo?.change24h ?? marketInfo?.regularMarketChangePercent ?? marketInfo?.usd_24h_change ?? selectedCoin.price_change_percentage_24h)?.toFixed(2) || '0.00'}%
+            </p>
+          </div>
+          <div>
+            <p className="text-gray-500 md:text-[12px] text-[10px]">24h High</p>
+            <p className="text-white text-sm font-medium">{(marketInfo?.high24h ?? marketInfo?.regularMarketDayHigh)?.toLocaleString() || '—'}</p>
+          </div>
+          <div>
+            <p className="text-gray-500 md:text-[12px] text-[10px]">24h Low</p>
+            <p className="text-white text-sm font-medium">{(marketInfo?.low24h ?? marketInfo?.regularMarketDayLow)?.toLocaleString() || '—'}</p>
+          </div>
+          <div>
+            <p className="text-gray-500 md:text-[12px] text-[9px]">24hvol({selectedCoin.symbol.toUpperCase()})</p>
+            <p className="text-white text-sm font-medium">
+              {(marketInfo?.volume24h ?? marketInfo?.regularMarketVolume) && (marketInfo?.usd ?? marketInfo?.price ?? marketInfo?.value ?? marketInfo?.regularMarketPrice) 
+                  ? ((marketInfo?.volume24h ?? marketInfo?.regularMarketVolume) / (marketInfo?.usd ?? marketInfo?.price ?? marketInfo?.value ?? marketInfo?.regularMarketPrice)).toLocaleString(undefined, { maximumFractionDigits: 0 }) 
+                  : '0'}
+            </p>
+          </div>
+          <div>
+            <p className="text-gray-500 md:text-[12px] text-[9px]">24hvol({quoteParam})</p>
+            <p className="text-white text-sm font-medium">{(marketInfo?.volume24h ?? marketInfo?.regularMarketVolume)?.toLocaleString(undefined, { maximumFractionDigits: 0 }) || '0'}</p>
           </div>
         </div>
       </div>
@@ -265,7 +462,7 @@ function FutureTradingPageContent() {
                 <TradingChart
                   activeView={activeView}
                   symbol={assetParam}
-                  currentPrice={(marketInfo?.usd ?? marketInfo?.price ?? marketInfo?.value)}
+                  currentPrice={(marketInfo?.usd ?? marketInfo?.price ?? marketInfo?.value ?? marketInfo?.regularMarketPrice)}
                   high24h={(marketInfo?.high24h ?? marketInfo?.regularMarketDayHigh)}
                   low24h={(marketInfo?.low24h ?? marketInfo?.regularMarketDayLow)}
                   marketInfo={marketInfo}
@@ -277,7 +474,7 @@ function FutureTradingPageContent() {
             </div>
 
             <div className="w-full md:w-[320px] shrink-0 border-b md:border-b-0 lg:border-r border-white/5 order-2">
-              <OrderBook symbol={assetParam} currentPrice={(marketInfo?.usd ?? marketInfo?.price ?? marketInfo?.value)} />
+              <OrderBook symbol={assetParam} currentPrice={(marketInfo?.usd ?? marketInfo?.price ?? marketInfo?.value ?? marketInfo?.regularMarketPrice)} />
             </div>
           </div>
 
@@ -287,7 +484,7 @@ function FutureTradingPageContent() {
               balance={walletInfo.total}
               externalSize={sharedSize}
               onSizeChange={setSharedSize}
-              currentPrice={(marketInfo?.usd ?? marketInfo?.price ?? marketInfo?.value)}
+              currentPrice={(marketInfo?.usd ?? marketInfo?.price ?? marketInfo?.value ?? marketInfo?.regularMarketPrice)}
             />
           </div>
 
@@ -302,20 +499,12 @@ function FutureTradingPageContent() {
             balance={walletInfo.total}
             externalSize={sharedSize}
             onSizeChange={setSharedSize}
-            currentPrice={(marketInfo?.usd ?? marketInfo?.price ?? marketInfo?.value)}
+            currentPrice={(marketInfo?.usd ?? marketInfo?.price ?? marketInfo?.value ?? marketInfo?.regularMarketPrice)}
           />
         </div>
-
       </div>
 
-      <CoinSelector 
-        isOpen={isSelectorOpen}
-        onClose={() => setIsSelectorOpen(false)}
-        onSelect={(symbol, category) => {
-          router.push(`/dashboard/futures-trade?asset=${symbol}&category=${category}`);
-        }}
-        currentAsset={assetParam}
-      />
+      
     </div>
   );
 }

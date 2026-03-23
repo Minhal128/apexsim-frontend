@@ -35,15 +35,15 @@ export default function CoinSelector({ isOpen, onClose, onSelect, currentAsset }
 
     const handleMarketData = (data: any) => {
       // Filter out invalid/zeroed data from backend (supports crypto usd, forex/stocks price, indices value)
-      const validData = Object.entries(data).filter(([_, details]: [string, any]) => (details.usd > 0 || details.price > 0 || details.value > 0));
+      const validData = Object.entries(data).filter(([_, details]: [string, any]) => (details.usd > 0 || details.price > 0 || details.value > 0 || details.regularMarketPrice > 0));
 
       if (validData.length > 0) {
         const formatted: Coin[] = validData.map(([symbol, details]: [string, any]) => ({
           symbol: details.symbol || symbol,
           name: details.name || details.pair || symbol,
-          usd: details.usd || details.price || details.value || 0,
-          change24h: details.change24h || 0,
-          image: details.image || `https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/${symbol.toLowerCase()}.png`
+          usd: details.usd || details.price || details.value || details.regularMarketPrice || 0,
+          change24h: details.change24h || details.regularMarketChangePercent || 0,
+          image: details.image || `https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/${symbol.toLowerCase().replace('^', '')}.png`
         }));
         setCoins(formatted);
         setLoading(false);
@@ -52,24 +52,24 @@ export default function CoinSelector({ isOpen, onClose, onSelect, currentAsset }
 
     // Initial search for coins if socket is slow/broken
     const fetchInitialCoins = async () => {
-      if (category !== 'crypto') return;
-
       try {
-        const resp = await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=20&page=1&sparkline=false');
-        const data = await resp.json();
-        if (Array.isArray(data)) {
-          const formatted: Coin[] = data.map(coin => ({
-            symbol: coin.symbol.toUpperCase(),
-            name: coin.name,
-            usd: coin.current_price,
-            change24h: coin.price_change_percentage_24h,
-            image: coin.image
+        const resp = await import('@/lib/api').then(m => m.apiRequest('/market/prices'));
+        const data = resp;
+        const validData = Object.entries(data).filter(([_, details]: [string, any]) => (details.usd > 0 || details.price > 0 || details.value > 0 || details.regularMarketPrice > 0));
+
+        if (validData.length > 0) {
+          const formatted: Coin[] = validData.map(([symbol, details]: [string, any]) => ({
+            symbol: details.symbol || symbol,
+            name: details.name || details.pair || symbol,
+            usd: details.usd || details.price || details.value || details.regularMarketPrice || 0,
+            change24h: details.change24h || details.regularMarketChangePercent || 0,
+            image: details.image || `https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/${symbol.toLowerCase().replace('^', '')}.png`
           }));
           setCoins(formatted);
           setLoading(false);
         }
       } catch (e) {
-        console.error("CoinSelector public fallback failed", e);
+        console.error("CoinSelector fetch prices fallback failed", e);
       }
     };
 
