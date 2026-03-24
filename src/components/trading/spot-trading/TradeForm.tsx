@@ -209,7 +209,7 @@ export default function TradeForm({ symbol = "BTC/USDT", currentPrice }: TradeFo
             alt={symbol.split('/')[0]}
             className="w-4 h-4 rounded-full object-contain"
             onError={(e) => {
-              e.currentTarget.src = '/images/bitcoin.png';
+              e.currentTarget.src = `https://ui-avatars.com/api/?name=${(symbol || "A").split("/")[0].substring(0,3)}&background=2A2A2A&color=fff&rounded=true&bold=true`;
             }}
           />
           <span className="text-xs text-gray-400">{symbol}</span>

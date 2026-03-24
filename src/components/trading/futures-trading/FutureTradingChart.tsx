@@ -153,7 +153,7 @@ export default React.memo(function FutureTradingChart({
                   className="w-7 h-7 rounded-full"
                 />
               ) : (
-                <img src="/images/bitcoin.png" alt="" />
+                <img src={`https://ui-avatars.com/api/?name=${(symbol || "BTC").split("/")[0].substring(0,3)}&background=2A2A2A&color=fff&rounded=true&bold=true`} alt="" className="w-7 h-7 rounded-full" />
               )}
             </div>
             <div>

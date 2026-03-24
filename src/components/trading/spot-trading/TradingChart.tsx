@@ -234,9 +234,9 @@ export default function TradingChart({
             <div className="flex items-center gap-2 mb-2 border-b pb-5 border-b-white/5">
               <div className="h-7 w-7">
                 {coinImage ? (
-                  <img src={coinImage} alt={coinName} className="w-7 h-7 rounded-full" onError={(e) => { e.currentTarget.src = "/images/bitcoin.png"; }} />
+                  <img src={coinImage} alt={coinName} className="w-7 h-7 rounded-full" onError={(e) => { e.currentTarget.src = `https://ui-avatars.com/api/?name=${(symbol || "A").split("/")[0].substring(0,3)}&background=2A2A2A&color=fff&rounded=true&bold=true`; }} />
                 ) : (
-                  <img src="/images/bitcoin.png" alt="" />
+                  <img src={`https://ui-avatars.com/api/?name=${(symbol || "BTC").split("/")[0].substring(0,3)}&background=2A2A2A&color=fff&rounded=true&bold=true`} alt="" className="w-7 h-7 rounded-full" />
                 )}
               </div>
               <div>

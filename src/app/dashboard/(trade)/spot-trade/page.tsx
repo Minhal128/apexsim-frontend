@@ -54,7 +54,7 @@ function TradingPageContent() {
   // Sync selectedCoin when URL asset changes
   useEffect(() => {
     const assetBase = initialAsset.includes('/') ? initialAsset.split('/')[0].toLowerCase() : initialAsset.toLowerCase();
-    const match = coins.find((c) => c.symbol.toLowerCase() === assetBase);
+    const match = coins.find((c) => c.symbol.toLowerCase() === assetBase || c.name.toLowerCase().includes(assetBase) || c.symbol.toLowerCase().includes(assetBase));
     if (match && match.symbol.toLowerCase() !== selectedCoin.symbol.toLowerCase()) {
       setSelectedCoin(match);
       setMarketInfo(null); // Reset market info for new asset
@@ -81,7 +81,7 @@ function TradingPageContent() {
         }));
         setCoins(formatted);
         const assetBase = initialAsset.includes('/') ? initialAsset.split('/')[0].toLowerCase() : initialAsset.toLowerCase();
-        const match = formatted.find((c) => c.symbol.toLowerCase() === assetBase);
+        const match = formatted.find((c) => c.symbol.toLowerCase() === assetBase || c.name.toLowerCase().includes(assetBase) || c.symbol.toLowerCase().includes(assetBase));
         if (match) setSelectedCoin(match);
         setCoinsLoading(false);
       }
@@ -209,7 +209,7 @@ function TradingPageContent() {
               src={selectedCoin.image}
               alt={selectedCoin.name}
               className="md:w-7 md:h-7 w-5 h-5 rounded-full"
-              onError={(e) => { e.currentTarget.src = `https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/${selectedCoin.symbol.toLowerCase()}.png`; }}
+              onError={(e) => { e.currentTarget.src = `https://ui-avatars.com/api/?name=${selectedCoin.symbol.substring(0,3)}&background=2A2A2A&color=fff&rounded=true&bold=true`; }}
             />
             <div className="flex flex-col items-start">
               <span className="text-white md:text-sm text-xs font-bold leading-none">
@@ -291,7 +291,7 @@ function TradingPageContent() {
                         src={coin.image}
                         alt={coin.name}
                         className="w-8 h-8 rounded-full flex-shrink-0"
-                        onError={(e) => { e.currentTarget.src = `https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/${coin.symbol.toLowerCase()}.png`; }}
+                        onError={(e) => { e.currentTarget.src = `https://ui-avatars.com/api/?name=${coin.symbol.substring(0,3)}&background=2A2A2A&color=fff&rounded=true&bold=true`; }}
                       />
                       <div className="flex flex-col items-start flex-1 min-w-0">
                         <span className="text-white text-sm font-semibold leading-tight">

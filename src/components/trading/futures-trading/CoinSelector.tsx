@@ -151,7 +151,7 @@ export default function CoinSelector({ isOpen, onClose, onSelect, currentAsset }
                       alt={coin.symbol}
                       className="w-8 h-8 rounded-full bg-gray-800"
                       onError={(e) => {
-                        e.currentTarget.src = "/images/bitcoin.png";
+                        e.currentTarget.src = `https://ui-avatars.com/api/?name=${(coin.symbol || coin.name || "A").split("/")[0].substring(0,3)}&background=2A2A2A&color=fff&rounded=true&bold=true`;
                       }}
                     />
                     <div>
