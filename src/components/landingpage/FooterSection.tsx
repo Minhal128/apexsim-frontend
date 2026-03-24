@@ -43,26 +43,6 @@ export default function Footer() {
             <p className="text-gray-400 mb-3 font-manrope leading-6 max-w-xs">
               Securely Protecting Your Digital Wealth, Today And Tomorrow.
             </p>
-            <div className="flex gap-2">
-              {[
-                { src: "/images/gmail.png", alt: "Mail" },
-                { src: "/images/insta.png", alt: "Instagram" },
-                { src: "/images/telegram.png", alt: "Telegram" },
-                { src: "/images/twitter.png", alt: "Twitter" },
-              ].map((img, i) => (
-                <a
-                  key={i}
-                  href="#"
-                  className="w-10 h-10 rounded-lg bg-[#353B40] flex items-center justify-center hover:bg-white/10 transition-colors cursor-pointer group"
-                >
-                  <img
-                    src={img.src}
-                    alt={img.alt}
-                    className="w-5 h-5 object-contain group-hover:opacity-100 transition-opacity"
-                  />
-                </a>
-              ))}
-            </div>
           </div>
         </div>
 
