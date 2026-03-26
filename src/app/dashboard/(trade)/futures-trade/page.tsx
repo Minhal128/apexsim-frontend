@@ -239,23 +239,30 @@ function FutureTradingPageContent() {
         apiRequest("/trading/positions").catch(() => []),
       ]);
 
-      const futuresUsdt = walletData?.futuresBalances?.find((b: any) => b.asset === "USDT")?.amount || 0;
+      const futuresUsdtRaw = walletData?.futuresBalances?.find((b: any) => b.asset === "USDT")?.amount || 0;
       const positions = Array.isArray(positionsData) ? (positionsData as FuturesPosition[]) : [];
 
+      const futuresUsdt = Number(futuresUsdtRaw);
+      const safeFuturesUsdt = Number.isFinite(futuresUsdt) ? futuresUsdt : 0;
+
       const marginUsed = positions.reduce((sum: number, pos: FuturesPosition) => {
-        const fallbackMargin = (pos.totalCost || 0) / (pos.leverage || 1 || 1);
-        return sum + (Number(pos.margin) || fallbackMargin || 0);
+        const totalCost = Number(pos.totalCost || 0);
+        const leverage = Number(pos.leverage || 1);
+        const fallbackMargin = totalCost / (leverage || 1);
+        const margin = Number(pos.margin);
+        return sum + (Number.isFinite(margin) && margin > 0 ? margin : (Number.isFinite(fallbackMargin) ? fallbackMargin : 0));
       }, 0);
 
       const unrealizedPnl = positions.reduce((sum: number, pos: FuturesPosition) => {
-        return sum + (Number(pos.unrealizedPnl) || 0);
+        const pnl = Number(pos.unrealizedPnl);
+        return sum + (Number.isFinite(pnl) ? pnl : 0);
       }, 0);
 
-      const equity = futuresUsdt + marginUsed + unrealizedPnl;
+      const equity = safeFuturesUsdt + marginUsed + unrealizedPnl;
       const marginLevelValue = marginUsed > 0 ? (equity / marginUsed) * 100 : 0;
 
       setWalletInfo({
-        total: futuresUsdt.toFixed(2),
+        total: safeFuturesUsdt.toFixed(2),
         equity: equity.toFixed(2),
         marginUsed: marginUsed.toFixed(2),
         marginLevel: marginUsed > 0 ? `${marginLevelValue.toFixed(0)}%` : "0%",
@@ -271,6 +278,27 @@ function FutureTradingPageContent() {
 
     const refreshInterval = setInterval(fetchWallet, 10000);
     return () => clearInterval(refreshInterval);
+  }, []);
+
+  useEffect(() => {
+    const socket = initializeSocket();
+    if (!socket) return;
+
+    const refresh = () => {
+      fetchWallet();
+    };
+
+    socket.on('wallet-update', refresh);
+    socket.on('trading:order-placed', refresh);
+    socket.on('trading:order-executed', refresh);
+    socket.on('trading:order-cancelled', refresh);
+
+    return () => {
+      socket.off('wallet-update', refresh);
+      socket.off('trading:order-placed', refresh);
+      socket.off('trading:order-executed', refresh);
+      socket.off('trading:order-cancelled', refresh);
+    };
   }, []);
 
   useEffect(() => {

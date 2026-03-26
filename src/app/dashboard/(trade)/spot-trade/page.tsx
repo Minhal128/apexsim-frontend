@@ -212,31 +212,42 @@ function TradingPageContent() {
 
   const fetchWalletMetrics = async () => {
     try {
-      const [walletData, positionsData] = await Promise.all([
-        apiRequest('/wallet'),
-        apiRequest('/trading/positions').catch(() => []),
-      ]);
+      const walletData = await apiRequest('/wallet');
 
-      const futuresUsdt = walletData?.futuresBalances?.find((b: any) => b.asset === 'USDT')?.amount || 0;
-      const positions = Array.isArray(positionsData) ? (positionsData as FuturesPosition[]) : [];
+      const balances = Array.isArray(walletData?.balances) ? walletData.balances : [];
+      const quoteAsset = (quoteParam || 'USDT').toUpperCase();
+      const baseAsset = selectedCoin.symbol.toUpperCase();
 
-      const marginUsed = positions.reduce((sum: number, pos: FuturesPosition) => {
-        const fallbackMargin = (pos.totalCost || 0) / (pos.leverage || 1 || 1);
-        return sum + (Number(pos.margin) || fallbackMargin || 0);
-      }, 0);
+      const quoteBalance = Number(
+        balances.find((b: any) => (b.asset || '').toString().toUpperCase() === quoteAsset)?.amount || 0
+      );
+      const baseBalance = Number(
+        balances.find((b: any) => (b.asset || '').toString().toUpperCase() === baseAsset)?.amount || 0
+      );
 
-      const unrealizedPnl = positions.reduce((sum: number, pos: FuturesPosition) => {
-        return sum + (Number(pos.unrealizedPnl) || 0);
-      }, 0);
+      const markPrice = Number(
+        marketInfo?.price ??
+        marketInfo?.value ??
+        marketInfo?.usd ??
+        marketInfo?.regularMarketPrice ??
+        selectedCoin.current_price ??
+        0
+      );
 
-      const equity = futuresUsdt + marginUsed + unrealizedPnl;
-      const marginLevelValue = marginUsed > 0 ? (equity / marginUsed) * 100 : 0;
+      const safeQuote = Number.isFinite(quoteBalance) ? quoteBalance : 0;
+      const safeBase = Number.isFinite(baseBalance) ? baseBalance : 0;
+      const safeMarkPrice = Number.isFinite(markPrice) ? markPrice : 0;
+
+      // Spot header metrics: wallet balance is quote wallet balance, equity adds base asset marked to current price.
+      const equity = safeQuote + (safeBase * safeMarkPrice);
+      const marginUsed = 0;
+      const unrealizedPnl = 0;
 
       setWalletInfo({
-        total: futuresUsdt.toFixed(2),
+        total: safeQuote.toFixed(2),
         equity: equity.toFixed(2),
         marginUsed: marginUsed.toFixed(2),
-        marginLevel: marginUsed > 0 ? `${marginLevelValue.toFixed(0)}%` : '0%',
+        marginLevel: '0%',
         pnl: unrealizedPnl.toFixed(2),
       });
     } catch (err) {
@@ -248,7 +259,7 @@ function TradingPageContent() {
     fetchWalletMetrics();
     const refreshInterval = setInterval(fetchWalletMetrics, 10000);
     return () => clearInterval(refreshInterval);
-  }, []);
+  }, [quoteParam, selectedCoin.symbol, marketInfo?.price, marketInfo?.value, marketInfo?.usd, marketInfo?.regularMarketPrice, selectedCoin.current_price]);
 
   // For crypto use SYMBOL/USDT, for other categories just the symbol
   const assetSymbol = category === 'crypto' 
