@@ -3,11 +3,14 @@ import { LuEye } from "react-icons/lu";
 import { FaCaretDown } from "react-icons/fa";
 import { apiRequest } from "@/lib/api";
 import { getSocket } from "@/lib/socket";
+import { APP_LANGUAGE_EVENT, AppLanguageCode, getAppLanguage, t } from "@/lib/i18n";
 
 export default function Overview() {
   const [walletData, setWalletData] = useState<any>(null);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [lang, setLang] = useState<AppLanguageCode>("Eng");
+  const tr = (key: string) => t(key, lang);
 
   useEffect(() => {
     fetchData();
@@ -27,6 +30,17 @@ export default function Overview() {
     }
     return () => {
         if (socket && handleWalletUpdate) socket.off('wallet-update', handleWalletUpdate);
+    };
+  }, []);
+
+  useEffect(() => {
+    const applyLanguage = () => setLang(getAppLanguage());
+    applyLanguage();
+    window.addEventListener("storage", applyLanguage);
+    window.addEventListener(APP_LANGUAGE_EVENT, applyLanguage as EventListener);
+    return () => {
+      window.removeEventListener("storage", applyLanguage);
+      window.removeEventListener(APP_LANGUAGE_EVENT, applyLanguage as EventListener);
     };
   }, []);
 
@@ -72,13 +86,13 @@ export default function Overview() {
 
           <div>
             <div className="flex items-center font-semibold gap-2 text-gray-500 text-sm mb-1">
-              <span>Valuation</span>
+              <span>{tr("valuation")}</span>
               <LuEye className="cursor-pointer text-white transition-colors" size={14} />
             </div>
 
             <div className="flex items-center gap-2">
               <h1 className="text-2xl sm:text-3xl md:text-4xl font-semibold tracking-tight">
-                {loading ? "Loading..." : `${totalBtc} BTC`}
+                {loading ? tr("loadingDots") : `${totalBtc} BTC`}
               </h1>
 
             </div>
@@ -91,7 +105,7 @@ export default function Overview() {
         {/* Assets */}
         <div className="mt-8">
           <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-4 py-3 border-y border-white/5">
-            <h3 className="text-lg font-semibold">My Assets</h3>
+            <h3 className="text-lg font-semibold">{tr("myAssets")}</h3>
 
           </div>
 
@@ -99,8 +113,8 @@ export default function Overview() {
             <table className="min-w-125 w-full text-left">
               <thead>
                 <tr className="text-gray-500 text-sm">
-                  <th className="pb-4 font-semibold">Symbol</th>
-                  <th className="pb-4 font-semibold text-right">Quantity</th>
+                  <th className="pb-4 font-semibold">{tr("symbolLabel")}</th>
+                  <th className="pb-4 font-semibold text-right">{tr("quantity")}</th>
                 </tr>
               </thead>
 
@@ -131,14 +145,14 @@ export default function Overview() {
       {/* RIGHT SECTION */}
       <div className="w-full lg:w-87.5 px-4 sm:px-6 py-8 border-t lg:border-t-0 border-white/5">
         <h3 className="text-lg md:text-xl font-semibold mb-6">
-          Recent Activities
+          {tr("recentActivities")}
         </h3>
 
         {transactions.length === 0 ? (
           <div className="flex flex-col items-center justify-center text-center">
             <img src="/images/search.png" alt="" className="w-16 h-16 sm:w-20 sm:h-20" />
             <p className="text-gray-500 text-sm sm:text-lg font-semibold mt-4">
-              No recent activities
+              {tr("noRecentActivities")}
             </p>
           </div>
         ) : (

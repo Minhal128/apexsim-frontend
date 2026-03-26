@@ -1,16 +1,30 @@
 import React, { useEffect, useState } from "react";
 import { LuEye, LuSearch } from "react-icons/lu";
 import { apiRequest } from "@/lib/api";
+import { APP_LANGUAGE_EVENT, AppLanguageCode, getAppLanguage, t } from "@/lib/i18n";
 
 export default function BotSection() {
   const [walletData, setWalletData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"Spot Grid" | "Futures Grid">("Spot Grid");
   const [profit, setProfit] = useState(0);
+  const [lang, setLang] = useState<AppLanguageCode>("Eng");
+  const tr = (key: string) => t(key, lang);
 
   useEffect(() => {
     fetchWallet();
     fetchProfit();
+  }, []);
+
+  useEffect(() => {
+    const applyLanguage = () => setLang(getAppLanguage());
+    applyLanguage();
+    window.addEventListener("storage", applyLanguage);
+    window.addEventListener(APP_LANGUAGE_EVENT, applyLanguage as EventListener);
+    return () => {
+      window.removeEventListener("storage", applyLanguage);
+      window.removeEventListener(APP_LANGUAGE_EVENT, applyLanguage as EventListener);
+    };
   }, []);
 
   const fetchWallet = async () => {
@@ -52,11 +66,11 @@ export default function BotSection() {
       <div className="max-w-6xl mx-auto">
         <div className="mb-7">
           <div className="flex items-center gap-2 text-gray-500 text-sm font-semibold mb-1">
-            <span>Valuation</span>
+            <span>{tr("valuation")}</span>
             <LuEye className="cursor-pointer text-white transition-colors" size={14} />
           </div>
           <h1 className="text-3xl md:text-4xl font-semibold tracking-tight">
-            {loading ? "Loading..." : `${currentBalance.toFixed(activeTab === "Spot Grid" ? 6 : 2)} ${currencySymbol}`}
+            {loading ? tr("loadingDots") : `${currentBalance.toFixed(activeTab === "Spot Grid" ? 6 : 2)} ${currencySymbol}`}
           </h1>
         </div>
 
@@ -65,23 +79,23 @@ export default function BotSection() {
             onClick={() => setActiveTab("Spot Grid")}
             className={`${activeTab === "Spot Grid" ? "bg-[#262628] text-white" : "text-gray-500 hover:text-gray-300"} px-4 py-1.5 rounded text-sm font-medium cursor-pointer transition-colors`}
           >
-            Spot Grid
+            {lang === "Esp" ? "Grid Spot" : "Spot Grid"}
           </button>
           <button 
             onClick={() => setActiveTab("Futures Grid")}
             className={`${activeTab === "Futures Grid" ? "bg-[#262628] text-white" : "text-gray-500 hover:text-gray-300"} px-4 py-1.5 rounded text-sm font-medium cursor-pointer transition-colors`}
           >
-            Futures Grid
+            {lang === "Esp" ? "Grid Futuros" : "Futures Grid"}
           </button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-4 border-b border-white/5 pb-4">
           <div>
-            <p className="text-gray-500 text-sm font-semibold mb-2">Wallet Balance</p>
+            <p className="text-gray-500 text-sm font-semibold mb-2">{tr("walletBalanceLabel")}</p>
             <h2 className="text-2xl md:text-3xl font-semibold">{currentBalance.toFixed(activeTab === "Spot Grid" ? 6 : 2)} {currencySymbol}</h2>
           </div>
           <div className="md:text-center">
-            <p className="text-gray-500 text-sm font-semibold mb-2">Total Profit</p>
+            <p className="text-gray-500 text-sm font-semibold mb-2">{lang === "Esp" ? "Ganancia total" : "Total Profit"}</p>
             <h2 className="text-2xl md:text-3xl font-bold">{profit.toFixed(6)} {currencySymbol}</h2>
           </div>
         </div>
@@ -89,7 +103,7 @@ export default function BotSection() {
         <div className="overflow-x-auto">
           <div className="flex flex-col items-center justify-center text-center py-10">
             <img src="/images/search.png" alt="" className="w-16 h-16 mb-4" />
-            <p className="text-gray-500 font-semibold text-sm">No data</p>
+            <p className="text-gray-500 font-semibold text-sm">{tr("noData")}</p>
           </div>
         </div>
       </div>

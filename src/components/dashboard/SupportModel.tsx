@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { IoSearchOutline } from "react-icons/io5";
 import { FiPlus, FiMinus } from "react-icons/fi";
 import { IoClose } from "react-icons/io5";
+import { APP_LANGUAGE_EVENT, AppLanguageCode, getAppLanguage, t } from "@/lib/i18n";
 
 interface Props {
   isOpen: boolean;
@@ -10,8 +11,21 @@ interface Props {
 }
 
 export default function SupportFAQModal({ isOpen, onClose }: Props) {
-  const [openCategory, setOpenCategory] = useState<string | null>("Account");
+  const [openCategory, setOpenCategory] = useState<string | null>("account");
+  const [lang, setLang] = useState<AppLanguageCode>("Eng");
+  const tr = (key: string) => t(key, lang);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const applyLanguage = () => setLang(getAppLanguage());
+    applyLanguage();
+    window.addEventListener("storage", applyLanguage);
+    window.addEventListener(APP_LANGUAGE_EVENT, applyLanguage as EventListener);
+    return () => {
+      window.removeEventListener("storage", applyLanguage);
+      window.removeEventListener(APP_LANGUAGE_EVENT, applyLanguage as EventListener);
+    };
+  }, []);
 
   useEffect(() => {
     const handleOutsideClick = (event: MouseEvent) => {
@@ -38,20 +52,22 @@ export default function SupportFAQModal({ isOpen, onClose }: Props) {
 
   const categories = [
     {
-      name: "Account",
+      id: "account",
+      name: tr("supportAccount"),
       questions: [
-        "How do I create an account?",
-        "How do I change my email or phone number?",
-        "Why is my account locked?",
-        "How do I check my account verification (KYC) status?",
+        tr("qCreateAccount"),
+        tr("qChangeEmailPhone"),
+        tr("qAccountLocked"),
+        tr("qKycStatus"),
       ],
     },
     {
-      name: "Security",
-      questions: ["How to enable 2FA?", "Resetting your password"],
+      id: "security",
+      name: tr("supportSecurity"),
+      questions: [tr("qEnable2fa"), tr("qResetPassword")],
     },
-    { name: "Wallets", questions: ["Deposit status", "Withdrawal limits"] },
-    { name: "Transactions", questions: ["Trading fees", "Order history"] },
+    { id: "wallets", name: tr("supportWallets"), questions: [tr("qDepositStatus"), tr("qWithdrawalLimits")] },
+    { id: "transactions", name: tr("supportTransactions"), questions: [tr("qTradingFees"), tr("qOrderHistory")] },
   ];
 
   return (
@@ -61,10 +77,10 @@ export default function SupportFAQModal({ isOpen, onClose }: Props) {
           <div className="p-6 h-full flex flex-col">
             <div className="flex justify-between items-start mb-5">
               <div>
-                <h2 className="text-white text-lg font-medium mb-3">Support</h2>
-                <p className="text-white text-lg">How can we help you?</p>
+                <h2 className="text-white text-lg font-medium mb-3">{tr("support")}</h2>
+                <p className="text-white text-lg">{tr("howCanWeHelpYou")}</p>
                 <p className="text-[#AFC0D0] text-sm mt-1">
-                  Get help with your trading account
+                  {tr("getHelpTradingAccount")}
                 </p>
               </div>
               <button
@@ -82,7 +98,7 @@ export default function SupportFAQModal({ isOpen, onClose }: Props) {
               />
               <input
                 type="text"
-                placeholder="Search help articles..."
+                placeholder={tr("searchHelpArticles")}
                 className="w-full bg-[#1C1C1C] text-[13px] py-4 rounded-full pl-11 pr-4 text-white focus:outline-none"
               />
             </div>
@@ -90,26 +106,26 @@ export default function SupportFAQModal({ isOpen, onClose }: Props) {
             <div className="space-y-3 flex-1 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-white/10">
               {categories.map((cat) => (
                 <div
-                  key={cat.name}
+                  key={cat.id}
                   className="border-b border-white/5 pb-3 last:border-0"
                 >
                   <button
                     onClick={() =>
                       setOpenCategory(
-                        openCategory === cat.name ? null : cat.name,
+                        openCategory === cat.id ? null : cat.id,
                       )
                     }
                     className="w-full flex items-center justify-between text-white text-[14px] cursor-pointer"
                   >
                     {cat.name}
-                    {openCategory === cat.name ? (
+                    {openCategory === cat.id ? (
                       <FiMinus size={14} />
                     ) : (
                       <FiPlus size={14} />
                     )}
                   </button>
 
-                  {openCategory === cat.name && (
+                  {openCategory === cat.id && (
                     <div className="mt-3 ml-2 animate-in slide-in-from-top-1 duration-200">
                       {cat.questions.length > 0 ? (
                         cat.questions.map((q) => (
@@ -122,7 +138,7 @@ export default function SupportFAQModal({ isOpen, onClose }: Props) {
                         ))
                       ) : (
                         <p className="text-gray-600 text-xs italic">
-                          No articles found.
+                          {tr("noArticlesFound")}
                         </p>
                       )}
                     </div>
@@ -144,10 +160,10 @@ export default function SupportFAQModal({ isOpen, onClose }: Props) {
             {/* Header */}
             <div className="flex justify-between items-start mb-5">
               <div>
-                <h2 className="text-white text-lg font-medium mb-3">Support</h2>
-                <p className="text-white text-lg">How can we help you?</p>
+                <h2 className="text-white text-lg font-medium mb-3">{tr("support")}</h2>
+                <p className="text-white text-lg">{tr("howCanWeHelpYou")}</p>
                 <p className="text-[#AFC0D0] text-sm mt-1">
-                  Get help with your trading account
+                  {tr("getHelpTradingAccount")}
                 </p>
               </div>
             </div>
@@ -160,7 +176,7 @@ export default function SupportFAQModal({ isOpen, onClose }: Props) {
               />
               <input
                 type="text"
-                placeholder="Search help articles..."
+                placeholder={tr("searchHelpArticles")}
                 className="w-full bg-[#1C1C1C] text-[13px] py-4 rounded-full pl-11 pr-4 text-white focus:outline-none"
               />
             </div>
@@ -169,26 +185,26 @@ export default function SupportFAQModal({ isOpen, onClose }: Props) {
             <div className="space-y-3 max-h-100 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-white/10">
               {categories.map((cat) => (
                 <div
-                  key={cat.name}
+                  key={cat.id}
                   className="border-b border-white/5 pb-3 last:border-0"
                 >
                   <button
                     onClick={() =>
                       setOpenCategory(
-                        openCategory === cat.name ? null : cat.name,
+                        openCategory === cat.id ? null : cat.id,
                       )
                     }
                     className="w-full flex items-center justify-between text-white text-[14px] cursor-pointer"
                   >
                     {cat.name}
-                    {openCategory === cat.name ? (
+                    {openCategory === cat.id ? (
                       <FiMinus size={14} />
                     ) : (
                       <FiPlus size={14} />
                     )}
                   </button>
 
-                  {openCategory === cat.name && (
+                  {openCategory === cat.id && (
                     <div className="mt-3 ml-2 animate-in slide-in-from-top-1 duration-200">
                       {cat.questions.length > 0 ? (
                         cat.questions.map((q) => (
@@ -201,7 +217,7 @@ export default function SupportFAQModal({ isOpen, onClose }: Props) {
                         ))
                       ) : (
                         <p className="text-gray-600 text-xs italic">
-                          No articles found.
+                          {tr("noArticlesFound")}
                         </p>
                       )}
                     </div>

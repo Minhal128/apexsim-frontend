@@ -3,6 +3,7 @@ import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { FaCaretDown } from "react-icons/fa";
 import { useRouter, usePathname } from 'next/navigation';
+import { APP_LANGUAGE_EVENT, APP_LANGUAGE_STORAGE_KEY } from '@/lib/i18n';
 
 // Navigation configuration
 const navigationItems = [
@@ -17,14 +18,17 @@ const navigationItems = [
 
 const languages = [
   { code: 'Eng', name: 'English', flag: 'https://flagcdn.com/us.svg' },
-  { code: 'Ger', name: 'German', flag: 'https://flagcdn.com/de.svg' },
-  { code: 'Fra', name: 'French', flag: 'https://flagcdn.com/fr.svg' },
+  { code: 'Esp', name: 'Spanish', flag: 'https://flagcdn.com/es.svg' },
 ];
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLangOpen, setIsLangOpen] = useState(false);
-  const [selectedLang, setSelectedLang] = useState(languages[0]);
+  const [selectedLang, setSelectedLang] = useState(() => {
+    if (typeof window === 'undefined') return languages[0];
+    const stored = localStorage.getItem(APP_LANGUAGE_STORAGE_KEY);
+    return languages.find((l) => l.code === stored) || languages[0];
+  });
   const langRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const pathname = usePathname();
@@ -51,6 +55,11 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    localStorage.setItem(APP_LANGUAGE_STORAGE_KEY, selectedLang.code);
+    window.dispatchEvent(new CustomEvent(APP_LANGUAGE_EVENT, { detail: { code: selectedLang.code } }));
+  }, [selectedLang]);
 
   return (
     <div className="min-h-screen bg-[#181818]">

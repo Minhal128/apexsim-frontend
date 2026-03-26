@@ -2,29 +2,30 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { FaCaretDown, FaRegBell } from "react-icons/fa";
+import { APP_LANGUAGE_EVENT, AppLanguageCode, getAppLanguage, t } from "@/lib/i18n";
 
 const tradeCategories = [
   {
-    title: "Spot trade",
-    desc: "Trade the spot market",
+    key: "spotTrade",
+    descKey: "tradeSpotMarket",
     icon: "/images/upanddown.png",
     path: "/dashboard/spot-trade",
   },
   {
-    title: "Futures trade",
-    desc: "Trade the futures market",
+    key: "futuresTrade",
+    descKey: "tradeFuturesMarket",
     icon: "/images/upanddown.png",
     path: "/dashboard/futures-trade",
   },
   {
-    title: "Trading bot",
-    desc: "Use an AI Bot",
+    key: "tradingBot",
+    descKey: "useAIBot",
     icon: "/images/upanddown.png",
     path: "/dashboard/trading-bot",
   },
   {
-    title: "Copy trade",
-    desc: "Trade with expert and earn",
+    key: "copyTrade",
+    descKey: "tradeWithExpertAndEarn",
     icon: "/images/upanddown.png",
     path: "/dashboard/copy-trade",
   },
@@ -70,20 +71,20 @@ const tradeAssets = [
 
 const moreItems = [
   {
-    title: "Learn",
-    desc: "Master the markets",
+    key: "learn",
+    descKey: "masterMarkets",
     icon: <FaRegBell size={14} />,
     path: "/dashboard/learn",
   },
   {
-    title: "Referral",
-    desc: "Invite friends, earn together",
+    key: "referral",
+    descKey: "inviteFriendsEarnTogether",
     icon: <FaRegBell size={14} />,
     path: "/dashboard/referral",
   },
   {
-    title: "Announcements",
-    desc: "Latest updates",
+    key: "announcements",
+    descKey: "latestUpdates",
     icon: <FaRegBell size={14} />,
     path: "#",
   },
@@ -105,7 +106,20 @@ export default function NavItem({
   const [isOpen, setIsOpen] = useState(false);
   const [activeQuote, setActiveQuote] = useState("USDT");
   const [isSelected, setIsSelected] = useState<string | null>(null);
+  const [lang, setLang] = useState<AppLanguageCode>("Eng");
+  const tr = (key: string) => t(key, lang);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const applyLanguage = () => setLang(getAppLanguage());
+    applyLanguage();
+    window.addEventListener("storage", applyLanguage);
+    window.addEventListener(APP_LANGUAGE_EVENT, applyLanguage as EventListener);
+    return () => {
+      window.removeEventListener("storage", applyLanguage);
+      window.removeEventListener(APP_LANGUAGE_EVENT, applyLanguage as EventListener);
+    };
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -168,17 +182,17 @@ export default function NavItem({
             <>
               <div className="w-[45%] bg-[#181818] p-2 border-r border-white/5">
                 <p className="text-[10px] text-gray-600 font-bold uppercase px-3 py-3">
-                  Trading
+                  {tr("tradingLabel")}
                 </p>
                 {tradeCategories.map((cat) => (
                   <Link
-                    key={cat.title}
+                    key={cat.key}
                     href={cat.path}
                     onClick={() => {
-                      setIsSelected(cat.title);
+                      setIsSelected(cat.key);
                       handleLinkClick();
                     }}
-                    className={`block p-3 rounded-md cursor-pointer group transition-colors mb-1 ${isSelected === cat.title
+                    className={`block p-3 rounded-md cursor-pointer group transition-colors mb-1 ${isSelected === cat.key
                         ? "bg-[#232526]"
                         : "hover:bg-white/5"
                       }`}
@@ -189,14 +203,14 @@ export default function NavItem({
                       </div>
                       <div>
                         <p
-                          className={`text-[13px] font-semibold ${isSelected === cat.title
+                          className={`text-[13px] font-semibold ${isSelected === cat.key
                               ? "text-white"
                               : "text-gray-300 group-hover:text-white"
                             }`}
                         >
-                          {cat.title}
+                          {tr(cat.key)}
                         </p>
-                        <p className="text-gray-500 text-[10px]">{cat.desc}</p>
+                        <p className="text-gray-500 text-[10px]">{tr(cat.descKey)}</p>
                       </div>
                     </div>
                   </Link>
@@ -225,7 +239,7 @@ export default function NavItem({
                 <div className="flex flex-col gap-1">
                   {tradeAssets.map((asset) => {
                     // determine target path based on selected category (default to spot)
-                    const selectedCategory = tradeCategories.find(c => c.title === isSelected);
+                    const selectedCategory = tradeCategories.find(c => c.key === isSelected);
                     const basePath = selectedCategory?.path || tradeCategories[0].path;
                     const query = `asset=${encodeURIComponent(asset.name)}&quote=${encodeURIComponent(activeQuote)}`;
                     const href = `${basePath}?${query}`;
@@ -258,17 +272,17 @@ export default function NavItem({
           {type === "more" && !isMobile && (
             <div className="p-2 flex flex-col gap-1 bg-[#1c1c1c]">
               <p className="px-3 py-3 text-gray-500 text-[10px] uppercase font-bold">
-                More
+                {tr("moreLabel")}
               </p>
               {moreItems.map((item) => (
                 <Link
-                  key={item.title}
+                  key={item.key}
                   href={item.path}
                   onClick={() => {
-                    setIsSelected(item.title);
+                    setIsSelected(item.key);
                     handleLinkClick();
                   }}
-                  className={`block p-4 rounded-md cursor-pointer group transition-colors ${isSelected === item.title
+                  className={`block p-4 rounded-md cursor-pointer group transition-colors ${isSelected === item.key
                       ? "bg-[#232526]"
                       : "hover:bg-white/5"
                     }`}
@@ -279,15 +293,15 @@ export default function NavItem({
                     </div>
                     <div>
                       <p
-                        className={`text-[14px] font-semibold ${isSelected === item.title
+                        className={`text-[14px] font-semibold ${isSelected === item.key
                             ? "text-white"
                             : "text-white group-hover:text-white"
                           }`}
                       >
-                        {item.title}
+                        {tr(item.key)}
                       </p>
                       <p className="text-gray-500 text-[11px] mt-1">
-                        {item.desc}
+                        {tr(item.descKey)}
                       </p>
                     </div>
                   </div>
@@ -301,12 +315,12 @@ export default function NavItem({
             <div className="flex flex-col gap-1 py-2 bg-[#111111]">
               {items.map((item) => (
                 <Link
-                  key={item.title}
+                  key={item.key}
                   href={item.path}
                   onClick={handleLinkClick}
                   className="text-gray-400 text-sm hover:text-white py-3 px-4 border-l-2 border-transparent hover:border-blue-500 hover:bg-white/5 transition-all"
                 >
-                  {item.title}
+                  {tr(item.key)}
                 </Link>
               ))}
             </div>

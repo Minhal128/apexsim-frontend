@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Overview from "./OverviewSection";
 import SpotAccountSection from "./SpotAccountSection";
 import FuturesSection from "./FuturesSection";
@@ -9,6 +9,7 @@ import WithdrawModal from "@/components/dashboard/WithdrawModel";
 import TransferModal from "./TransferModal";
 import TradeHistoryModal from "./TradeHistoryModal";
 import TradeRecordModal from "./TradeRecordModal";
+import { APP_LANGUAGE_EVENT, AppLanguageCode, getAppLanguage, t } from "@/lib/i18n";
 
 export default function WalletSectionPage() {
   const [activeTab, setActiveTab] = useState("Overview");
@@ -16,15 +17,34 @@ export default function WalletSectionPage() {
   const [showTransfer, setShowTransfer] = useState(false);
   const [showTradeHistory, setShowTradeHistory] = useState(false);
   const [showTradeRecord, setShowTradeRecord] = useState(false);
+  const [lang, setLang] = useState<AppLanguageCode>("Eng");
+  const tr = (key: string) => t(key, lang);
   const router = useRouter();
 
   const tabs = ["Overview", "Spot Account", "Futures", "Bot"];
+  const tabLabel: Record<string, string> = {
+    Overview: tr("overview"),
+    "Spot Account": tr("spotAccount"),
+    Futures: tr("futures"),
+    Bot: "Bot",
+  };
+
+  useEffect(() => {
+    const applyLanguage = () => setLang(getAppLanguage());
+    applyLanguage();
+    window.addEventListener("storage", applyLanguage);
+    window.addEventListener(APP_LANGUAGE_EVENT, applyLanguage as EventListener);
+    return () => {
+      window.removeEventListener("storage", applyLanguage);
+      window.removeEventListener(APP_LANGUAGE_EVENT, applyLanguage as EventListener);
+    };
+  }, []);
 
   return (
     <div className="min-h-screen bg-[#181818] text-white md:py-8 py-4 font-manrope">
       <div className="max-w-350 mx-auto px-4 md:px-0">
         <div className="flex md:flex-row flex-col items-start md:items-center mb-8 justify-between gap-6">
-          <h1 className="text-3xl font-bold tracking-tight">Assets</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{tr("assets")}</h1>
 
           <div className="md:w-150 w-full md:flex md:flex-row gap-4">
             <div className="grid grid-cols-2 gap-3 w-full md:flex  md:gap-3">
@@ -32,22 +52,22 @@ export default function WalletSectionPage() {
                 onClick={() => router.push("/dashboard/deposit")}
                 className="w-full rounded-sm bg-[#0055FF] px-3 py-2 text-sm hover:opacity-90 transition-opacity"
               >
-                Deposit
+                {tr("deposit")}
               </button>
               <button
                 onClick={() => setShowWithdraw(true)}
                 className="w-full rounded-sm bg-[#1D1D1D] px-3 py-2 text-sm hover:bg-[#252525] transition-colors"
               >
-                Withdraw
+                {tr("withdraw")}
               </button>
               <button className="w-full rounded-sm bg-[#1D1D1D] px-3 py-2 text-sm" onClick={() => setShowTransfer(true)}>
-                Transfer
+                {tr("transferTitle")}
               </button>
               <button className="w-full rounded-sm bg-[#1D1D1D] px-3 py-2 text-sm" onClick={() => setShowTradeHistory(true)}>
-                Trade History
+                {tr("tradeHistoryTitle")}
               </button>
               <button className="w-full rounded-sm bg-[#1D1D1D] px-3 py-2 text-sm" onClick={() => setShowTradeRecord(true)}>
-                Trade Record
+                {tr("tradeRecordTitle")}
               </button>
             </div>
           </div>
@@ -67,7 +87,7 @@ export default function WalletSectionPage() {
                 {activeTab === tab && (
                   <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-10 bg-white" />
                 )}
-                {tab}
+                {tabLabel[tab] || tab}
               </button>
             ))}
           </aside>

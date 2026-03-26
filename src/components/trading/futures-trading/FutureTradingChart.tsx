@@ -1,6 +1,7 @@
 "use client";
 import React from "react";
 import dynamic from "next/dynamic";
+import { APP_LANGUAGE_EVENT, AppLanguageCode, getAppLanguage, t } from "@/lib/i18n";
 
 // Dynamically import TradingView Advanced Real-Time Chart widget
 const AdvancedRealTimeChart = dynamic(
@@ -41,6 +42,8 @@ export default React.memo(function FutureTradingChart({
   high24h,
   low24h,
 }: FutureTradingChartProps) {
+  const [lang, setLang] = React.useState<AppLanguageCode>("Eng");
+  const tr = (key: string) => t(key, lang);
   const getTradingViewSymbol = (sym: string) => {
     if (!sym) return "BINANCE:BTCUSDT";
 
@@ -115,6 +118,17 @@ export default React.memo(function FutureTradingChart({
     }
   }, [activeView, symbol]);
 
+  React.useEffect(() => {
+    const applyLanguage = () => setLang(getAppLanguage());
+    applyLanguage();
+    window.addEventListener('storage', applyLanguage);
+    window.addEventListener(APP_LANGUAGE_EVENT, applyLanguage as EventListener);
+    return () => {
+      window.removeEventListener('storage', applyLanguage);
+      window.removeEventListener(APP_LANGUAGE_EVENT, applyLanguage as EventListener);
+    };
+  }, []);
+
   const calcPreviousClose = () => {
     const price = ((marketInfo?.usd ?? marketInfo?.price ?? marketInfo?.value) ?? currentPrice ?? quoteData?.usd ?? quoteData?.price ?? quoteData?.value ?? quoteData?.regularMarketPrice);
     const change = marketInfo?.change24h ?? quoteData?.usd_24h_change ?? quoteData?.change24h ?? quoteData?.regularMarketChangePercent;
@@ -134,7 +148,7 @@ export default React.memo(function FutureTradingChart({
               interval="D"
               timezone="Etc/UTC"
               style="1"
-              locale="en"
+              locale={lang === "Esp" ? "es" : "en"}
               enable_publishing={false}
               allow_symbol_change={true}
               save_image={false}
@@ -165,10 +179,10 @@ export default React.memo(function FutureTradingChart({
           </div>
 
           <div className="w-full max-w-4xl">
-            <h3 className="text-gray-100 text-lg font-semibold">Information</h3>
+            <h3 className="text-gray-100 text-lg font-semibold">{tr('information')}</h3>
             <div className="mt-2 space-y-2">
               <InfoRow
-                label="Price"
+                label={tr('price')}
                 value={
                   (marketInfo?.usd ?? marketInfo?.price ?? marketInfo?.value) !== undefined
                     ? formatPrice((marketInfo?.usd ?? marketInfo?.price ?? marketInfo?.value))
@@ -178,7 +192,7 @@ export default React.memo(function FutureTradingChart({
                 }
               />
               <InfoRow
-                label="24h Change"
+                label={tr('change24h')}
                 value={
                   marketInfo?.change24h !== undefined && marketInfo?.change24h !== null
                     ? `${marketInfo.change24h.toFixed(2)}%`
@@ -187,11 +201,11 @@ export default React.memo(function FutureTradingChart({
                 }
               />
               <InfoRow
-                label="Previous Close"
+                label={tr('previousClose')}
                 value={formatPrice(calcPreviousClose())}
               />
               <InfoRow
-                label="24h High"
+                label={tr('high24h')}
                 value={
                   marketInfo?.high24h
                     ? formatPrice(marketInfo.high24h)
@@ -200,7 +214,7 @@ export default React.memo(function FutureTradingChart({
                 }
               />
               <InfoRow
-                label="24h Low"
+                label={tr('low24h')}
                 value={
                   marketInfo?.low24h
                     ? formatPrice(marketInfo.low24h)

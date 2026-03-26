@@ -5,6 +5,7 @@ import { FaPlayCircle } from "react-icons/fa";
 import { FaSearch } from "react-icons/fa";
 import { useRouter } from 'next/navigation';
 import { initializeSocket, getSocket } from '@/lib/socket';
+import { APP_LANGUAGE_EVENT, AppLanguageCode, getAppLanguage, t } from '@/lib/i18n';
 
 const PairIcon = ({ icons, isSingle = false }: { icons: string[]; isSingle?: boolean }) => {
     if (icons.length === 1 || isSingle) {
@@ -81,6 +82,7 @@ const MarketContent = ({
     favorites,
     onToggleFavorite,
     activeCategory,
+    tr,
 }: {
     cardData: CardData[];
     tableData: TableData[];
@@ -88,6 +90,7 @@ const MarketContent = ({
     favorites: Set<string>;
     onToggleFavorite: (pair: string) => void;
     activeCategory: string;
+    tr: (key: string) => string;
 }) => {
     const router = useRouter()
 
@@ -95,8 +98,8 @@ const MarketContent = ({
         return (
             <div className="flex flex-col items-center justify-center py-20 text-gray-500">
                 <Star size={40} className="mb-4 opacity-40" />
-                <p className="text-lg font-semibold">No favorites yet</p>
-                <p className="text-sm mt-1">Star a trading pair to add it here</p>
+                <p className="text-lg font-semibold">{tr('noFavoritesYet')}</p>
+                <p className="text-sm mt-1">{tr('starTradingPairHint')}</p>
             </div>
         );
     }
@@ -148,13 +151,13 @@ const MarketContent = ({
                     <thead>
                         <tr className="text-gray-500 text-sm font-semibold border-b border-white/5">
                             <th className="text-left pb-4 font-medium w-8"></th>
-                            <th className="text-left pb-4 font-medium">Trading pairs</th>
-                            <th className="text-left pb-4 font-medium px-4">Last traded price</th>
+                            <th className="text-left pb-4 font-medium">{tr('tradingPairs')}</th>
+                            <th className="text-left pb-4 font-medium px-4">{tr('lastTradedPrice')}</th>
                             <th className="text-left pb-4 font-medium px-4">24H Change %</th>
                             <th className="text-left pb-4 font-medium px-4">24H High</th>
                             <th className="text-left pb-4 font-medium px-4">24H Low</th>
-                            <th className="text-left pb-4 font-medium px-4">Market Volume</th>
-                            <th className="text-left pb-4 font-medium">Action</th>
+                            <th className="text-left pb-4 font-medium px-4">{tr('marketVolume')}</th>
+                            <th className="text-left pb-4 font-medium">{tr('action')}</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-white/2">
@@ -186,7 +189,7 @@ const MarketContent = ({
                                         <button
                                             onClick={() => onToggleFavorite(row.pair)}
                                             className="p-1 cursor-pointer transition-colors"
-                                            aria-label={isFav ? 'Remove from favorites' : 'Add to favorites'}
+                                            aria-label={isFav ? tr('removeFromFavorites') : tr('addToFavorites')}
                                         >
                                             <Star
                                                 size={15}
@@ -215,7 +218,7 @@ const MarketContent = ({
                                                 onClick={() => router.push(tradeTarget)}
                                                 className="bg-gradient-to-r from-blue-600 to-blue-500 text-white px-5 py-1.5 rounded-full text-xs font-bold shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 transition-all cursor-pointer"
                                             >
-                                                Trade
+                                                {tr('tradeNav')}
                                             </button>
                                         </div>
                                     </td>
@@ -236,6 +239,8 @@ export default function MarketComponent() {
     const [filteredData, setFilteredData] = useState<MarketData[]>([]);
     const [searchTerm, setSearchTerm] = useState("");
     const [loading, setLoading] = useState(true);
+    const [lang, setLang] = useState<AppLanguageCode>('Eng');
+    const tr = (key: string) => t(key, lang);
     const [favorites, setFavorites] = useState<Set<string>>(() => {
         if (typeof window === 'undefined') return new Set();
         try {
@@ -261,8 +266,31 @@ export default function MarketComponent() {
         });
     };
 
+    useEffect(() => {
+        const applyLanguage = () => setLang(getAppLanguage());
+        applyLanguage();
+        window.addEventListener('storage', applyLanguage);
+        window.addEventListener(APP_LANGUAGE_EVENT, applyLanguage as EventListener);
+        return () => {
+            window.removeEventListener('storage', applyLanguage);
+            window.removeEventListener(APP_LANGUAGE_EVENT, applyLanguage as EventListener);
+        };
+    }, []);
+
     const categories = ["Crypto", "Forex", "Commodities", "Stocks", "Indices"];
     const subTabs = ["Favorites", "Spot", "Futures"];
+    const categoryLabel: Record<string, string> = {
+        Crypto: tr('crypto'),
+        Forex: tr('forex'),
+        Commodities: tr('commodities'),
+        Stocks: tr('stocks'),
+        Indices: tr('indices'),
+    };
+    const subTabLabel: Record<string, string> = {
+        Favorites: tr('favoritesTab'),
+        Spot: tr('spot'),
+        Futures: tr('futures'),
+    };
 
     // Fetch market data based on category (REST API fallback - socket will handle updates)
     useEffect(() => {
@@ -532,13 +560,13 @@ export default function MarketComponent() {
         <div className="bg-[#181818] min-h-screen text-white p-4 md:p-10 font-manrope">
             <div className="max-w-350 mx-auto">
                 <div className='flex items-center mb-5 justify-between'>
-                    <h1 className="text-3xl font-bold">Market</h1>
+                    <h1 className="text-3xl font-bold">{tr('market')}</h1>
 
                     <div className="relative w-40 md:w-60">
                         <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-50" size={14} />
                         <input
                             type="text"
-                            placeholder="Search for currency pairs"
+                            placeholder={tr('searchCurrencyPairs')}
                             value={searchTerm}
                             onChange={handleSearch}
                             className="w-full bg-[#222222] md:py-5 py-3 pl-11 pr-4 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all rounded-lg"
@@ -555,7 +583,7 @@ export default function MarketComponent() {
                             className={`md:px-6 px-2 py-5 md:text-[14px] text-[11px] font-semibold transition-all cursor-pointer 
                                 ${activeCategory === cat ? "bg-[#2B2B2B] text-white" : "bg-[#1E1E1E] text-gray-500 hover:text-gray-300"}`}
                         >
-                            {cat}
+                            {categoryLabel[cat] || cat}
                         </button>
                     ))}
                 </div>
@@ -570,7 +598,7 @@ export default function MarketComponent() {
                                 className={`pb-3 text-sm font-semibold transition-all relative cursor-pointer
           ${activeTab === tab ? "text-white" : "text-gray-500 hover:text-gray-300"}`}
                             >
-                                {tab}
+                                {subTabLabel[tab] || tab}
                                 {activeTab === tab && (
                                     <div className="absolute bottom-0 left-0 w-full h-0.75 bg-blue-500 rounded-full" />
                                 )}
@@ -581,7 +609,7 @@ export default function MarketComponent() {
 
                 {loading ? (
                     <div className="flex items-center justify-center py-10">
-                        <div className="text-gray-400">Loading market data...</div>
+                        <div className="text-gray-400">{tr('loadingMarketData')}</div>
                     </div>
                 ) : (
                     <MarketContent
@@ -591,6 +619,7 @@ export default function MarketComponent() {
                         favorites={favorites}
                         onToggleFavorite={toggleFavorite}
                         activeCategory={activeCategory}
+                        tr={tr}
                     />
                 )}
             </div>

@@ -4,6 +4,7 @@ import { FaCaretDown } from "react-icons/fa";
 import { apiRequest } from '@/lib/api';
 import { useToast } from '@/components/ToastContext';
 import { initializeSocket } from '@/lib/socket';
+import { APP_LANGUAGE_EVENT, AppLanguageCode, getAppLanguage, t } from '@/lib/i18n';
 
 interface Order {
   _id: string;
@@ -19,18 +20,37 @@ interface Order {
 
 export default function OrderTabs() {
   const toast = useToast();
-  const [activeTab, setActiveTab] = useState("Open orders");
+  const [activeTab, setActiveTab] = useState<"openOrders" | "ordersHistory" | "tradeHistory" | "iceberg" | "funds">("openOrders");
   const [openOrders, setOpenOrders] = useState<Order[]>([]);
   const [orderHistory, setOrderHistory] = useState<Order[]>([]);
   const [loading, setLoading] = useState(false);
-
-  const tabs = ['Open orders', 'Orders history', 'Trade history', 'Iceberg', 'Funds'];
-  const columns = ['Date', 'Pair', 'Type', 'Side', 'Price', 'Amount', 'Filled', 'Total', 'Action'];
+  const [lang, setLang] = useState<AppLanguageCode>('Eng');
+  const tr = (key: string) => t(key, lang);
 
   useEffect(() => {
-    if (activeTab === 'Open orders') {
+    const applyLanguage = () => setLang(getAppLanguage());
+    applyLanguage();
+    window.addEventListener('storage', applyLanguage);
+    window.addEventListener(APP_LANGUAGE_EVENT, applyLanguage as EventListener);
+    return () => {
+      window.removeEventListener('storage', applyLanguage);
+      window.removeEventListener(APP_LANGUAGE_EVENT, applyLanguage as EventListener);
+    };
+  }, []);
+
+  const tabs: Array<{ key: "openOrders" | "ordersHistory" | "tradeHistory" | "iceberg" | "funds"; label: string }> = [
+    { key: 'openOrders', label: tr('openOrders') },
+    { key: 'ordersHistory', label: tr('ordersHistory') },
+    { key: 'tradeHistory', label: tr('tradeHistory') },
+    { key: 'iceberg', label: tr('iceberg') },
+    { key: 'funds', label: tr('funds') },
+  ];
+  const columns = [tr('date'), tr('pair'), tr('type'), tr('side'), tr('price'), tr('amount'), tr('filled'), tr('total'), tr('action')];
+
+  useEffect(() => {
+    if (activeTab === 'openOrders') {
       fetchOpenOrders();
-    } else if (activeTab === 'Orders history' || activeTab === 'Trade history') {
+    } else if (activeTab === 'ordersHistory' || activeTab === 'tradeHistory') {
       fetchOrderHistory();
     }
   }, [activeTab]);
@@ -65,9 +85,9 @@ export default function OrderTabs() {
     const socket = initializeSocket();
     
     const handleTradeUpdate = () => {
-      if (activeTab === 'Open orders') {
+      if (activeTab === 'openOrders') {
         fetchOpenOrders();
-      } else if (activeTab === 'Orders history' || activeTab === 'Trade history') {
+      } else if (activeTab === 'ordersHistory' || activeTab === 'tradeHistory') {
         fetchOrderHistory();
       }
     };
@@ -109,8 +129,8 @@ export default function OrderTabs() {
     }
   };
 
-  const displayData = activeTab === 'Open orders' ? openOrders : orderHistory;
-  const displayCount = activeTab === 'Open orders' ? openOrders.length : orderHistory.length;
+  const displayData = activeTab === 'openOrders' ? openOrders : orderHistory;
+  const displayCount = activeTab === 'openOrders' ? openOrders.length : orderHistory.length;
 
   return (
     <div className="bg-[#181818] border-t border-white/5 min-h-100 flex flex-col font-sans w-full relative">
@@ -119,14 +139,14 @@ export default function OrderTabs() {
         <div className="flex gap-6 min-w-max">
           {tabs.map(tab => (
             <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
               className={`py-4 text-[14px] font-medium transition-all relative cursor-pointer whitespace-nowrap ${
-                activeTab === tab ? 'text-white' : 'text-gray-500 hover:text-gray-300'
+                activeTab === tab.key ? 'text-white' : 'text-gray-500 hover:text-gray-300'
               }`}
             >
-              {tab} {(tab === 'Open orders' || tab === 'Orders history' || tab === 'Trade history') && `(${displayCount})`}
-              {activeTab === tab && (
+              {tab.label} {(tab.key === 'openOrders' || tab.key === 'ordersHistory' || tab.key === 'tradeHistory') && `(${displayCount})`}
+              {activeTab === tab.key && (
                 <div className="absolute bottom-0 left-0 w-full h-[2.5px] bg-[#00B595]" />
               )}
             </button>
@@ -153,19 +173,19 @@ export default function OrderTabs() {
                 <div className="text-white text-sm">{new Date(order.createdAt).toLocaleDateString()}</div>
                 <div className="text-white text-sm font-medium">{order.symbol}</div>
                 <div className={`text-sm font-medium ${order.type === 'buy' ? 'text-[#34C759]' : 'text-[#ef5350]'}`}>
-                  {order.type.toUpperCase()}
+                  {order.type === 'buy' ? tr('buy').toUpperCase() : tr('sell').toUpperCase()}
                 </div>
-                <div className="text-white text-sm">{order.type}</div>
+                <div className="text-white text-sm">{order.type === 'buy' ? tr('buy') : tr('sell')}</div>
                 <div className="text-white text-sm">${order.price.toFixed(2)}</div>
                 <div className="text-white text-sm">{order.amount.toFixed(6)}</div>
                 <div className="text-gray-400 text-sm">{order.status === 'completed' ? '100%' : '0%'}</div>
                 <div className="text-white text-sm font-medium">${order.total.toFixed(2)}</div>
-                {activeTab === 'Open orders' && (
+                {activeTab === 'openOrders' && (
                   <button
                     onClick={() => handleCancelOrder(order._id)}
                     className="bg-[#2B2E33] hover:bg-[#363A40] text-white text-[12px] px-4 py-1.5 rounded transition-colors cursor-pointer whitespace-nowrap border border-white/5"
                   >
-                    Cancel
+                    {tr('cancel')}
                   </button>
                 )}
               </div>
@@ -176,14 +196,14 @@ export default function OrderTabs() {
 
       {displayData.length === 0 && !loading && (
         <>
-          {activeTab === 'Open orders' && openOrders.length === 0 && (
+          {activeTab === 'openOrders' && openOrders.length === 0 && (
             <div className="flex md:ml-1 justify-end px-4 py-2 mb-4">
               <button 
                 onClick={handleCancelAll}
                 disabled={openOrders.length === 0}
                 className="bg-[#2B2E33] hover:bg-[#363A40] disabled:opacity-50 text-white text-[12px] px-8 py-1.5 rounded-[3px] transition-colors cursor-pointer whitespace-nowrap border border-white/5"
               >
-                Cancel all
+                {tr('cancelAll')}
               </button>
             </div>
           )}
@@ -197,7 +217,7 @@ export default function OrderTabs() {
               />              
             </div>
             <p className="text-gray-600 text-sm mt-2">
-              {activeTab === 'Open orders' ? 'No active orders found' : 'No order history'}
+              {activeTab === 'openOrders' ? tr('noActiveOrdersFound') : tr('noOrderHistory')}
             </p>
           </div>
         </>
@@ -205,7 +225,7 @@ export default function OrderTabs() {
 
       {loading && (
         <div className="grow flex flex-col items-center justify-center p-10">
-          <p className="text-gray-400 text-sm">Loading {activeTab.toLowerCase()}...</p>
+          <p className="text-gray-400 text-sm">{tr('loading')} {activeTab.toLowerCase()}...</p>
         </div>
       )}
 

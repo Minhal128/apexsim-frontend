@@ -5,6 +5,7 @@ import { BiSolidCopy } from "react-icons/bi";
 import { FaCaretDown, FaStar, FaRegStar } from "react-icons/fa";
 import { PiCaretUpDownFill } from "react-icons/pi";
 import { apiRequest } from "@/lib/api";
+import { APP_LANGUAGE_EVENT, AppLanguageCode, getAppLanguage, t } from "@/lib/i18n";
 
 interface ProfileOverviewProps {
   user: any;
@@ -38,6 +39,8 @@ export default function ProfileOverview({ user, wallet, onDeposit, onWithdraw }:
   const [prices, setPrices] = useState<Record<string, { usd: number; change24h: number; volume24h: number; marketCap: number }>>({});
   const [searchTerm, setSearchTerm] = useState("");
   const [activeMarketTab, setActiveMarketTab] = useState<MarketTab>("Hot");
+  const [lang, setLang] = useState<AppLanguageCode>("Eng");
+  const tr = (key: string) => t(key, lang);
   const [favorites, setFavorites] = useState<string[]>(() => {
     if (typeof window !== "undefined") {
       let coinFavs: string[] = [];
@@ -81,6 +84,17 @@ export default function ProfileOverview({ user, wallet, onDeposit, onWithdraw }:
     fetchPrices();
     const interval = setInterval(fetchPrices, 30000);
     return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    const applyLanguage = () => setLang(getAppLanguage());
+    applyLanguage();
+    window.addEventListener("storage", applyLanguage);
+    window.addEventListener(APP_LANGUAGE_EVENT, applyLanguage as EventListener);
+    return () => {
+      window.removeEventListener("storage", applyLanguage);
+      window.removeEventListener(APP_LANGUAGE_EVENT, applyLanguage as EventListener);
+    };
   }, []);
 
   const toggleVisibility = () => setShowBalance(!showBalance);
@@ -224,7 +238,7 @@ export default function ProfileOverview({ user, wallet, onDeposit, onWithdraw }:
               className="flex items-center gap-2 text-gray-500 text-xs mb-1 cursor-pointer select-none group"
               onClick={toggleVisibility}
             >
-              <span>Estimated value</span>
+              <span>{lang === "Esp" ? "Valor estimado" : "Estimated value"}</span>
               {showBalance ? (
                 <LuEye className="text-white transition-colors group-hover:text-blue-400" size={14} />
               ) : (
@@ -251,13 +265,13 @@ export default function ProfileOverview({ user, wallet, onDeposit, onWithdraw }:
               onClick={onDeposit}
               className="flex-1 bg-[#0055FF] hover:bg-blue-700 text-white px-10 py-2.5 rounded-sm transition-all"
             >
-              Deposit
+              {tr("deposit")}
             </button>
             <button
               onClick={onWithdraw}
               className="flex-1 bg-[#1F1F26] hover:bg-[#323234] text-white px-10 py-2.5 rounded-sm transition-all"
             >
-              Withdraw
+              {tr("withdraw")}
             </button>
           </div>
         </div>
@@ -265,10 +279,10 @@ export default function ProfileOverview({ user, wallet, onDeposit, onWithdraw }:
         {/* Search & Filter Row */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4 md:mb-6">
           <div className="flex items-center gap-4 md:gap-6">
-            <h3 className="text-lg font-semibold">Market</h3>
+            <h3 className="text-lg font-semibold">{tr("market")}</h3>
             <label className="flex items-center gap-2 text-gray-500 text-xs cursor-pointer">
               <input type="radio" className="w-3.5 h-3.5 accent-blue-500 cursor-pointer" />
-              <span className="text-sm">Hide other assets less than 1 USD</span>
+              <span className="text-sm">{lang === "Esp" ? "Ocultar otros activos menores a 1 USD" : "Hide other assets less than 1 USD"}</span>
             </label>
           </div>
 
@@ -276,7 +290,7 @@ export default function ProfileOverview({ user, wallet, onDeposit, onWithdraw }:
             <LuSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-white" size={20} />
             <input
               type="text"
-              placeholder="Search for currency pairs"
+              placeholder={tr("searchCurrencyPairs")}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="bg-[#18181E] rounded-sm py-3 pl-10 pr-4 text-sm w-full focus:outline-none"
@@ -308,22 +322,22 @@ export default function ProfileOverview({ user, wallet, onDeposit, onWithdraw }:
             <thead>
               <tr className="text-gray-400 text-sm">
                 <th className="py-3 font-medium w-8"></th>
-                <th className="py-3 font-medium">Coin</th>
+                <th className="py-3 font-medium">{tr("coin")}</th>
                 <th className="py-3 font-medium">
                   <div className="inline-flex items-center gap-1">
-                    Price (USD)
+                    {lang === "Esp" ? "Precio (USD)" : "Price (USD)"}
                     <PiCaretUpDownFill className="text-xs" />
                   </div>
                 </th>
                 <th className="py-3 font-medium">
                   <div className="inline-flex items-center gap-1">
-                    Your Balance
+                    {lang === "Esp" ? "Tu balance" : "Your Balance"}
                     <PiCaretUpDownFill className="text-xs" />
                   </div>
                 </th>
-                <th className="py-3 font-medium">24h Change</th>
-                <th className="py-3 font-medium">24h Volume</th>
-                <th className="py-3 font-medium text-right">Operations</th>
+                <th className="py-3 font-medium">{tr("change24h")}</th>
+                <th className="py-3 font-medium">{lang === "Esp" ? "Volumen 24h" : "24h Volume"}</th>
+                <th className="py-3 font-medium text-right">{tr("operations")}</th>
               </tr>
             </thead>
 
@@ -332,8 +346,8 @@ export default function ProfileOverview({ user, wallet, onDeposit, onWithdraw }:
                 <tr>
                   <td colSpan={7} className="py-10 text-center text-gray-500">
                     {activeMarketTab === "Favorite"
-                      ? "No favorite coins yet. Click the star to add."
-                      : "No matching assets found."}
+                      ? (lang === "Esp" ? "Aún no hay monedas favoritas. Haz clic en la estrella para agregar." : "No favorite coins yet. Click the star to add.")
+                      : (lang === "Esp" ? "No se encontraron activos coincidentes." : "No matching assets found.")}
                   </td>
                 </tr>
               ) : (
@@ -394,13 +408,13 @@ export default function ProfileOverview({ user, wallet, onDeposit, onWithdraw }:
                         onClick={onDeposit}
                         className="text-blue-500 hover:text-blue-400 font-semibold text-sm mr-3"
                       >
-                        Deposit
+                        {tr("deposit")}
                       </button>
                       <button
                         onClick={onWithdraw}
                         className="text-blue-500 hover:text-blue-400 font-semibold text-sm"
                       >
-                        Withdraw
+                        {tr("withdraw")}
                       </button>
                     </td>
                   </tr>

@@ -8,6 +8,7 @@ import OrderTabs from '@/components/trading/spot-trading/TradingFooter';
 import TradingChart from '@/components/trading/spot-trading/TradingChart';
 import { initializeSocket } from '@/lib/socket';
 import { apiRequest } from '@/lib/api';
+import { APP_LANGUAGE_EVENT, APP_LANGUAGE_STORAGE_KEY, AppLanguageCode, getAppLanguage, t } from '@/lib/i18n';
 
 interface CoinInfo {
   id: string;
@@ -17,6 +18,13 @@ interface CoinInfo {
   current_price: number;
   price_change_percentage_24h: number;
   market_cap_rank: number;
+}
+
+interface FuturesPosition {
+  margin?: number;
+  totalCost?: number;
+  leverage?: number;
+  unrealizedPnl?: number;
 }
 
 function TradingPageContent() {
@@ -50,6 +58,15 @@ function TradingPageContent() {
 
   // Live market data
   const [marketInfo, setMarketInfo] = useState<any>(null);
+  const [lang, setLang] = useState<AppLanguageCode>("Eng");
+  const tr = (key: string) => t(key, lang);
+  const [walletInfo, setWalletInfo] = useState<any>({
+    total: "0.00",
+    equity: "0.00",
+    marginUsed: "0.00",
+    marginLevel: "0%",
+    pnl: "0.00"
+  });
 
   // Sync selectedCoin when URL asset changes
   useEffect(() => {
@@ -182,6 +199,57 @@ function TradingPageContent() {
     };
   }, [selectedCoin.symbol, category]);
 
+  useEffect(() => {
+    const applyLanguage = () => setLang(getAppLanguage());
+    applyLanguage();
+    window.addEventListener('storage', applyLanguage);
+    window.addEventListener(APP_LANGUAGE_EVENT, applyLanguage as EventListener);
+    return () => {
+      window.removeEventListener('storage', applyLanguage);
+      window.removeEventListener(APP_LANGUAGE_EVENT, applyLanguage as EventListener);
+    };
+  }, []);
+
+  const fetchWalletMetrics = async () => {
+    try {
+      const [walletData, positionsData] = await Promise.all([
+        apiRequest('/wallet'),
+        apiRequest('/trading/positions').catch(() => []),
+      ]);
+
+      const futuresUsdt = walletData?.futuresBalances?.find((b: any) => b.asset === 'USDT')?.amount || 0;
+      const positions = Array.isArray(positionsData) ? (positionsData as FuturesPosition[]) : [];
+
+      const marginUsed = positions.reduce((sum: number, pos: FuturesPosition) => {
+        const fallbackMargin = (pos.totalCost || 0) / (pos.leverage || 1 || 1);
+        return sum + (Number(pos.margin) || fallbackMargin || 0);
+      }, 0);
+
+      const unrealizedPnl = positions.reduce((sum: number, pos: FuturesPosition) => {
+        return sum + (Number(pos.unrealizedPnl) || 0);
+      }, 0);
+
+      const equity = futuresUsdt + marginUsed + unrealizedPnl;
+      const marginLevelValue = marginUsed > 0 ? (equity / marginUsed) * 100 : 0;
+
+      setWalletInfo({
+        total: futuresUsdt.toFixed(2),
+        equity: equity.toFixed(2),
+        marginUsed: marginUsed.toFixed(2),
+        marginLevel: marginUsed > 0 ? `${marginLevelValue.toFixed(0)}%` : '0%',
+        pnl: unrealizedPnl.toFixed(2),
+      });
+    } catch (err) {
+      console.error('Failed to fetch wallet metrics:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchWalletMetrics();
+    const refreshInterval = setInterval(fetchWalletMetrics, 10000);
+    return () => clearInterval(refreshInterval);
+  }, []);
+
   // For crypto use SYMBOL/USDT, for other categories just the symbol
   const assetSymbol = category === 'crypto' 
     ? `${selectedCoin.symbol.toUpperCase()}/${quoteParam}`
@@ -246,7 +314,7 @@ function TradingPageContent() {
                 <input
                   autoFocus
                   type="search"
-                  placeholder="Search coin…"
+                  placeholder={tr('searchCoin')}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   autoComplete="off"
@@ -265,7 +333,7 @@ function TradingPageContent() {
                     <div className="w-5 h-5 border-2 border-[#f0b90b] border-t-transparent rounded-full animate-spin" />
                   </div>
                 ) : filteredCoins.length === 0 ? (
-                  <p className="text-gray-500 text-sm text-center py-6">No results</p>
+                  <p className="text-gray-500 text-sm text-center py-6">{tr('noResults')}</p>
                 ) : (
                   filteredCoins.map((coin) => (
                     <button
@@ -317,7 +385,7 @@ function TradingPageContent() {
         </div>
 
         {/* Market Stats */}
-        <div className="flex gap-4 font-semibold text-[11px]">
+        <div className="flex gap-4 font-semibold text-[11px] min-w-max">
           <div>
             <p className={`md:text-lg text-sm font-bold ${(marketInfo?.regularMarketChangePercent ?? marketInfo?.changePercent ?? marketInfo?.usd_24h_change ?? selectedCoin.price_change_percentage_24h) >= 0 ? 'text-[#26a69a]' : 'text-[#ef5350]'}`}>
               ${(marketInfo?.price ?? marketInfo?.value ?? marketInfo?.usd ?? marketInfo?.regularMarketPrice ?? selectedCoin.current_price)?.toLocaleString() || '0.00'}
@@ -325,17 +393,17 @@ function TradingPageContent() {
             <p className="text-gray-500 text-[12px]">${(marketInfo?.price ?? marketInfo?.value ?? marketInfo?.usd ?? marketInfo?.regularMarketPrice ?? selectedCoin.current_price)?.toLocaleString() || '0.00'}</p>
           </div>
           <div>
-            <p className="text-gray-500 md:text-[12px] text-[10px]">24h Change</p>
+            <p className="text-gray-500 md:text-[12px] text-[10px]">{tr('change24h')}</p>
             <p className={`text-sm ${(marketInfo?.change24h ?? marketInfo?.regularMarketChangePercent ?? marketInfo?.usd_24h_change ?? selectedCoin.price_change_percentage_24h ?? 0) >= 0 ? 'text-[#26a69a]' : 'text-[#ef5350]'}`}>
               {(marketInfo?.change24h ?? marketInfo?.regularMarketChangePercent ?? marketInfo?.usd_24h_change ?? selectedCoin.price_change_percentage_24h)?.toFixed(2) || '0.00'}%
             </p>
           </div>
           <div>
-            <p className="text-gray-500 md:text-[12px] text-[10px]">24h High</p>
+            <p className="text-gray-500 md:text-[12px] text-[10px]">{tr('high24h')}</p>
             <p className="text-white text-sm font-medium">{(marketInfo?.high24h ?? marketInfo?.regularMarketDayHigh)?.toLocaleString() || '—'}</p>
           </div>
           <div>
-            <p className="text-gray-500 md:text-[12px] text-[10px]">24h Low</p>
+            <p className="text-gray-500 md:text-[12px] text-[10px]">{tr('low24h')}</p>
             <p className="text-white text-sm font-medium">{(marketInfo?.low24h ?? marketInfo?.regularMarketDayLow)?.toLocaleString() || '—'}</p>
           </div>
           <div>
@@ -351,6 +419,27 @@ function TradingPageContent() {
             <p className="text-white text-sm font-medium">{(marketInfo?.volume24h ?? marketInfo?.regularMarketVolume)?.toLocaleString(undefined, { maximumFractionDigits: 0 }) || '0'}</p>
           </div>
         </div>
+
+        <div className="hidden md:flex items-center ml-auto bg-[#1f1f1f] border border-white/10 rounded-md overflow-hidden min-w-fit">
+          <div className="px-3 py-1.5 border-r border-white/10">
+            <p className="text-[10px] text-gray-400">{tr('walletBalance')}</p>
+            <p className="text-xs font-semibold text-white">${walletInfo.total}</p>
+          </div>
+          <div className="px-3 py-1.5 border-r border-white/10">
+            <p className="text-[10px] text-gray-400">{tr('equity')}</p>
+            <p className="text-xs font-semibold text-white">${walletInfo.equity}</p>
+          </div>
+          <div className="px-3 py-1.5 border-r border-white/10">
+            <p className="text-[10px] text-gray-400">{tr('margin')}</p>
+            <p className="text-xs font-semibold text-white">{walletInfo.marginLevel}</p>
+          </div>
+          <div className="px-3 py-1.5">
+            <p className="text-[10px] text-gray-400">{tr('pnl')}</p>
+            <p className={`text-xs font-semibold ${Number(walletInfo.pnl) >= 0 ? 'text-blue-400' : 'text-red-400'}`}>
+              {Number(walletInfo.pnl) > 0 ? '+' : ''}${walletInfo.pnl}
+            </p>
+          </div>
+        </div>
       </div>
 
       <div className="flex flex-col md:flex-row h-full gap-px bg-white/5">
@@ -361,13 +450,13 @@ function TradingPageContent() {
               onClick={() => setActiveTab("chart")}
               className={`pb-1 !cursor-pointer transition-all ${activeTab === "chart" ? "text-[#00B595] border-b-2 border-[#00B595]" : "text-gray-500 hover:text-white"}`}
             >
-              Chart
+              {tr('chart')}
             </span>
             <span
               onClick={() => setActiveTab("info")}
               className={`pb-1 !cursor-pointer transition-all ${activeTab === "info" ? "text-[#00B595] border-b-2 border-[#00B595]" : "text-gray-500 hover:text-white"}`}
             >
-              Info
+              {tr('info')}
             </span>
           </div>
 

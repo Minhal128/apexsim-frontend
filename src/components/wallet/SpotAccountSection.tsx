@@ -5,6 +5,7 @@ import { FaCaretDown } from "react-icons/fa";
 import { PiCaretUpDownFill } from "react-icons/pi";
 import { apiRequest } from "@/lib/api";
 import { getSocket } from "@/lib/socket";
+import { APP_LANGUAGE_EVENT, AppLanguageCode, getAppLanguage, t } from "@/lib/i18n";
 
 const coinIcons: Record<string, string> = {
     BTC: "/images/bitcoin.png",
@@ -20,6 +21,8 @@ export default function FundsOverview() {
     const [loading, setLoading] = useState(true);
     const [selectedCoin, setSelectedCoin] = useState("BTC");
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const [lang, setLang] = useState<AppLanguageCode>("Eng");
+    const tr = (key: string) => t(key, lang);
 
     useEffect(() => {
         fetchWallet();
@@ -44,6 +47,17 @@ export default function FundsOverview() {
         }
         return () => {
             if (socket && handleWalletUpdate) socket.off('wallet-update', handleWalletUpdate);
+        };
+    }, []);
+
+    useEffect(() => {
+        const applyLanguage = () => setLang(getAppLanguage());
+        applyLanguage();
+        window.addEventListener("storage", applyLanguage);
+        window.addEventListener(APP_LANGUAGE_EVENT, applyLanguage as EventListener);
+        return () => {
+            window.removeEventListener("storage", applyLanguage);
+            window.removeEventListener(APP_LANGUAGE_EVENT, applyLanguage as EventListener);
         };
     }, []);
 
@@ -78,12 +92,12 @@ export default function FundsOverview() {
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-6 mb-10 pt-6">
                     <div>
                         <div className="flex items-center font-semibold gap-2 text-gray-500 text-sm mb-1">
-                            <span>Valuation</span>
+                            <span>{tr("valuation")}</span>
                             <LuEye className="cursor-pointer text-white" size={14} />
                         </div>
                         <div className="flex items-center gap-2 relative">
                             <h1 className="text-2xl sm:text-3xl md:text-4xl font-semibold tracking-tight">
-                                {loading ? "Loading..." : `${currentBalance.toFixed(selectedCoin === 'USDT' ? 2 : 6)} ${selectedCoin}`}
+                                {loading ? tr("loadingDots") : `${currentBalance.toFixed(selectedCoin === 'USDT' ? 2 : 6)} ${selectedCoin}`}
                             </h1>
                             <span 
                                 className="text-gray-400 p-1 bg-[#252525] rounded-sm cursor-pointer hover:bg-[#333]"
@@ -112,8 +126,8 @@ export default function FundsOverview() {
 
                     <div className="sm:text-right">
                         <div className="flex items-center sm:justify-end gap-2 mb-1">
-                            <span className="text-gray-400 font-semibold text-xs border-b border-gray-600 border-dotted">Profit and Loss</span>
-                            <div className="bg-[#262628] px-2 py-0.5 rounded flex items-center gap-1 text-[11px] text-gray-300">Today <FaCaretDown size={10} /></div>
+                            <span className="text-gray-400 font-semibold text-xs border-b border-gray-600 border-dotted">{tr("profitAndLoss")}</span>
+                            <div className="bg-[#262628] px-2 py-0.5 rounded flex items-center gap-1 text-[11px] text-gray-300">{tr("today")} <FaCaretDown size={10} /></div>
                         </div>
                         <h2 className="text-xl sm:text-2xl font-semibold">$0.00</h2>
                     </div>
@@ -121,10 +135,10 @@ export default function FundsOverview() {
 
                 <div className="mt-8">
                     <div className="flex md:flex-row flex-col sm:items-center justify-between gap-4 mb-4 py-3 border-y border-white/5">
-                        <h3 className="text-lg font-semibold">My Assets</h3>
+                        <h3 className="text-lg font-semibold">{tr("myAssets")}</h3>
                         <div className="relative w-full sm:w-64">
                             <LuSearch size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                            <input placeholder="Search..." className="w-full bg-[#222222] pl-9 pr-3 py-3 rounded-sm text-sm outline-none" />
+                            <input placeholder={tr("searchDots")} className="w-full bg-[#222222] pl-9 pr-3 py-3 rounded-sm text-sm outline-none" />
                         </div>
                     </div>
                 </div>
@@ -134,10 +148,10 @@ export default function FundsOverview() {
                 <table className="w-full min-w-225 text-sm">
                     <thead>
                         <tr className="text-gray-400">
-                            <th className="py-3 text-left">Coin</th>
-                            <th className="py-3 text-left">Total</th>
-                            <th className="py-3 text-left">Available</th>
-                            <th className="py-3 text-right">Action</th>
+                            <th className="py-3 text-left">{tr("coin")}</th>
+                            <th className="py-3 text-left">{tr("total")}</th>
+                            <th className="py-3 text-left">{tr("available")}</th>
+                            <th className="py-3 text-right">{tr("action")}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -161,13 +175,13 @@ export default function FundsOverview() {
                                             href={`/dashboard/deposit`}
                                             className="text-[#00B595] hover:underline mr-4"
                                         >
-                                            Deposit
+                                            {tr("deposit")}
                                         </Link>
                                         <Link 
                                             href={`/dashboard/spot-trade?asset=${coin.symbol}/USDT`}
                                             className="text-[#00B595] hover:underline"
                                         >
-                                            Trade
+                                            {tr("tradeNav")}
                                         </Link>
                                     </td>
                                 </tr>

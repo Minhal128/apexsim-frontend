@@ -13,6 +13,7 @@ import { getSocket } from "@/lib/socket";
 import { useToast } from "@/components/ToastContext";
 import { useRouter } from 'next/navigation';
 import TransferModal from '@/components/wallet/TransferModal';
+import { APP_LANGUAGE_EVENT, AppLanguageCode, getAppLanguage, t } from '@/lib/i18n';
 
 type OrderType = "Limit order" | "Market order" | "Stop order";
 
@@ -42,6 +43,19 @@ export default function TradeForm({ symbol = "BTC/USDT", balance, onSizeChange, 
     const [usdtBalance, setUsdtBalance] = useState("0");
     const [userId, setUserId] = useState<string | null>(null);
     const [loadingAction, setLoadingAction] = useState<"long" | "short" | "close" | null>(null);
+    const [lang, setLang] = useState<AppLanguageCode>("Eng");
+    const tr = (key: string) => t(key, lang);
+
+    useEffect(() => {
+        const applyLanguage = () => setLang(getAppLanguage());
+        applyLanguage();
+        window.addEventListener('storage', applyLanguage);
+        window.addEventListener(APP_LANGUAGE_EVENT, applyLanguage as EventListener);
+        return () => {
+            window.removeEventListener('storage', applyLanguage);
+            window.removeEventListener(APP_LANGUAGE_EVENT, applyLanguage as EventListener);
+        };
+    }, []);
 
     useEffect(() => {
         apiRequest('/profile/me').then(data => setUserId(data._id)).catch(console.error);
@@ -231,7 +245,7 @@ export default function TradeForm({ symbol = "BTC/USDT", balance, onSizeChange, 
                 <div className="flex flex-1 gap-2">
                     <div className="flex-1 flex items-center justify-between bg-[#24262b] px-3 py-1.5 rounded cursor-pointer border border-transparent hover:border-white/10"
                         onClick={() => setIsMarginModeOpen(true)}>
-                        <span className="text-sm font-medium">{marginMode === "cross" ? "Cross" : "Isolated"}</span>
+                        <span className="text-sm font-medium">{marginMode === "cross" ? tr('cross') : tr('isolated')}</span>
                         <FaCaretDown size={12} className="text-gray-500" />
                     </div>
                     <div
@@ -245,18 +259,18 @@ export default function TradeForm({ symbol = "BTC/USDT", balance, onSizeChange, 
             </div>
 
             <div className="flex bg-[#24262b] rounded-md ">
-                <button onClick={() => setTab('Open')} className={`flex-1 py-1.5 text-sm font-semibold rounded cursor-pointer transition-all active:scale-[0.98] ${tab === 'Open' ? 'bg-[#00B595] text-white' : 'text-gray-400'}`}>Open</button>
-                <button onClick={() => setTab('Close')} className={`flex-1 py-1.5 text-sm font-semibold rounded cursor-pointer transition-all active:scale-[0.98] ${tab === 'Close' ? 'bg-[#00B595] text-white' : 'text-gray-400'}`}>Close</button>
+                <button onClick={() => setTab('Open')} className={`flex-1 py-1.5 text-sm font-semibold rounded cursor-pointer transition-all active:scale-[0.98] ${tab === 'Open' ? 'bg-[#00B595] text-white' : 'text-gray-400'}`}>{tr('open')}</button>
+                <button onClick={() => setTab('Close')} className={`flex-1 py-1.5 text-sm font-semibold rounded cursor-pointer transition-all active:scale-[0.98] ${tab === 'Close' ? 'bg-[#00B595] text-white' : 'text-gray-400'}`}>{tr('close')}</button>
             </div>
 
             <div className="flex justify-between items-center text-[12px] font-medium text-gray-500 border-b border-white/5 pb-2 overflow-x-auto no-scrollbar whitespace-nowrap gap-4">
-                {(["Limit order", "Market order", "Stop order"] as OrderType[]).map((t) => (
-                    <span key={t} onClick={() => setOrderType(t)} className={`cursor-pointer transition-colors pb-1 ${orderType === t ? 'text-white border-b border-[#00B595]' : 'hover:text-gray-300'}`}>{t}</span>
+                {(["Limit order", "Market order", "Stop order"] as OrderType[]).map((tVal) => (
+                    <span key={tVal} onClick={() => setOrderType(tVal)} className={`cursor-pointer transition-colors pb-1 ${orderType === tVal ? 'text-white border-b border-[#00B595]' : 'hover:text-gray-300'}`}>{tVal === 'Limit order' ? tr('limitOrder') : tVal === 'Market order' ? tr('marketOrder') : tr('stopOrder')}</span>
                 ))}
             </div>
 
             <div className="flex items-center justify-between text-[11px]">
-                <div className="flex items-center gap-1.5"><span className="text-gray-500">Avbl</span><span className="text-white">{usdtBalance} USDT</span></div>
+                <div className="flex items-center gap-1.5"><span className="text-gray-500">{tr('avbl')}</span><span className="text-white">{usdtBalance} USDT</span></div>
                 <HiOutlineSwitchHorizontal size={14} className="text-[#00B595] cursor-pointer" />
             </div>
 
@@ -265,7 +279,7 @@ export default function TradeForm({ symbol = "BTC/USDT", balance, onSizeChange, 
                     <div className="relative">
                         <input
                             type="text"
-                            placeholder={orderType === "Market order" ? "Market Price" : `Price (${symbol.split('/')[1] || "USDT"})`}
+                            placeholder={orderType === "Market order" ? tr('marketPrice') : `${tr('price')} (${symbol.split('/')[1] || "USDT"})`}
                             value={orderType === "Market order" ? `~${currentPrice || 0} ${symbol.split('/')[1] || "USDT"}` : price}
                             disabled={orderType === "Market order"}
                             onChange={(e) => setPrice(e.target.value)}
@@ -275,7 +289,7 @@ export default function TradeForm({ symbol = "BTC/USDT", balance, onSizeChange, 
                     <div className="relative">
                         <input
                             type="text"
-                            placeholder={`Size (${symbol.split('/')[0]})`}
+                            placeholder={`${tr('size')} (${symbol.split('/')[0]})`}
                             value={size}
                             onChange={(e) => setSize(e.target.value)}
                             className="w-full bg-[#1E2023] border border-white/5 rounded-md p-2.5 text-sm outline-none focus:border-[#00B595]"
@@ -287,12 +301,12 @@ export default function TradeForm({ symbol = "BTC/USDT", balance, onSizeChange, 
             {tab === "Close" && positions.length > 0 && (
                 <div className="space-y-3">
                     <div className="bg-[#24262b] p-2 rounded text-sm">
-                          <p className="text-gray-400">Current Position: {positions.find(p => p.symbol === symbol)?.quantity || 0} {symbol.split('/')[0]}</p>
+                          <p className="text-gray-400">{tr('currentPosition')}: {positions.find(p => p.symbol === symbol)?.quantity || 0} {symbol.split('/')[0]}</p>
                     </div>
                     <div className="relative">
                         <input
                             type="text"
-                            placeholder={orderType === "Market order" ? "Market Price" : `Price (${symbol.split('/')[1] || "USDT"})`}
+                            placeholder={orderType === "Market order" ? tr('marketPrice') : `${tr('price')} (${symbol.split('/')[1] || "USDT"})`}
                             value={orderType === "Market order" ? `~${currentPrice || 0} ${symbol.split('/')[1] || "USDT"}` : price}
                             disabled={orderType === "Market order"}
                             onChange={(e) => setPrice(e.target.value)}
@@ -302,7 +316,7 @@ export default function TradeForm({ symbol = "BTC/USDT", balance, onSizeChange, 
                     <div className="relative">
                         <input
                             type="text"
-                            placeholder={`Size (${symbol.split('/')[0]})`}
+                            placeholder={`${tr('size')} (${symbol.split('/')[0]})`}
                             value={size}
                             onChange={(e) => setSize(e.target.value)}
                             className="w-full bg-[#1E2023] border border-white/5 rounded-md p-2.5 text-sm outline-none focus:border-[#00B595]"
@@ -380,12 +394,12 @@ export default function TradeForm({ symbol = "BTC/USDT", balance, onSizeChange, 
 
             <div className="space-y-3">
                 <div className="flex items-center gap-1 text-[13px] text-gray-300 cursor-pointer hover:text-white">
-                    <span className="font-semibold">Advanced options</span>
+                    <span className="font-semibold">{tr('advancedOptions')}</span>
                     <FaCaretDown size={12} className="text-gray-500" />
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-[12px] bg-[#24262b]/30 p-2 rounded">
                     <div className="flex flex-col gap-0.5">
-                        <span className="text-[#00B595] font-medium">Max Buy</span>
+                        <span className="text-[#00B595] font-medium">{tr('maxBuy')}</span>
                         <span className="text-white font-mono">
                             {price && parseFloat(price) > 0
                                 ? (parseFloat(usdtBalance) * leverage / parseFloat(price)).toFixed(4)
@@ -393,7 +407,7 @@ export default function TradeForm({ symbol = "BTC/USDT", balance, onSizeChange, 
                         </span>
                     </div>
                     <div className="flex flex-col gap-0.5 text-right">
-                        <span className="text-[#ef5350] font-medium">Max Sell</span>
+                        <span className="text-[#ef5350] font-medium">{tr('maxSell')}</span>
                         <span className="text-white font-mono">
                             {price && parseFloat(price) > 0
                                 ? (parseFloat(usdtBalance) * leverage / parseFloat(price)).toFixed(4)
@@ -410,14 +424,14 @@ export default function TradeForm({ symbol = "BTC/USDT", balance, onSizeChange, 
                         disabled={loadingAction !== null}
                         className="flex-1 py-3 bg-[#00B595] text-white rounded font-bold text-sm cursor-pointer active:scale-95 transition-all shadow-lg shadow-[#00B595]/10 disabled:opacity-50"
                     >
-                        {loadingAction === "long" ? "Opening..." : "Open long"}
+                        {loadingAction === "long" ? tr('opening') : tr('openLong')}
                     </button>
                     <button
                         onClick={() => handleOpenPosition("short")}
                         disabled={loadingAction !== null}
                         className="flex-1 py-3 bg-[#ef5350] text-white rounded font-bold text-sm cursor-pointer active:scale-95 transition-all shadow-lg shadow-[#ef5350]/10 disabled:opacity-50"
                     >
-                        {loadingAction === "short" ? "Opening..." : "Open short"}
+                        {loadingAction === "short" ? tr('opening') : tr('openShort')}
                     </button>
                 </div>
             )}
@@ -428,14 +442,14 @@ export default function TradeForm({ symbol = "BTC/USDT", balance, onSizeChange, 
                     disabled={loadingAction !== null || positions.length === 0}
                     className="w-full py-3 bg-[#00B595] text-white rounded font-bold text-sm cursor-pointer active:scale-95 transition-all shadow-lg shadow-[#00B595]/10 disabled:opacity-50"
                 >
-                    {loadingAction === "close" ? "Closing..." : "Close Position"}
+                    {loadingAction === "close" ? tr('closing') : tr('closePosition')}
                 </button>
             )}
 
             <div className="pt-4 border-t border-white/5 space-y-2.5">
-                <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Asset Balance</h3>
+                <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">{tr('assetBalance')}</h3>
                 <div className="space-y-2">
-                    {[{ label: "Total Balance", value: `${usdtBalance} USDT` }, { label: "Wallet Balance", value: `${usdtBalance} USDT` }, { label: "Unrealized PnL", value: "0.00 USDT" }].map((item) => (
+                    {[{ label: tr('totalBalance'), value: `${usdtBalance} USDT` }, { label: tr('walletBalance'), value: `${usdtBalance} USDT` }, { label: tr('unrealizedPnl'), value: "0.00 USDT" }].map((item) => (
                         <div key={item.label} className="flex justify-between text-[12px]">
                             <span className="text-gray-500 underline decoration-gray-700 decoration-dotted underline-offset-4">{item.label}</span>
                             <span className="text-white font-medium">{item.value}</span>
@@ -448,31 +462,31 @@ export default function TradeForm({ symbol = "BTC/USDT", balance, onSizeChange, 
                       onClick={() => router.push('/dashboard/deposit')}
                       className="flex-1 py-2 bg-[#24262b] hover:bg-[#2d3036] rounded text-[12px] font-semibold cursor-pointer active:scale-95 transition-colors"
                     >
-                      Deposit
+                      {tr('deposit')}
                     </button>
                     <button 
                       type="button"
                       onClick={() => setShowTransfer(true)}
                       className="flex-1 py-2 bg-[#24262b] hover:bg-[#2d3036] rounded text-[12px] font-semibold cursor-pointer active:scale-95 transition-colors"
                     >
-                      Transfer
+                      {tr('transfer')}
                     </button>
                 </div>
             </div>
 
             <div className="pt-4 border-t border-white/5 space-y-2 pb-6">
-                <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Contract Info</h3>
+                <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">{tr('contractInfo')}</h3>
                 <div className="flex justify-between text-[12px]">
-                    <span className="text-gray-500">Symbol</span><span className="text-white">{symbol}</span>
+                    <span className="text-gray-500">{tr('symbol')}</span><span className="text-white">{symbol}</span>
                 </div>
                 <div className="flex justify-between text-[12px]">
-                    <span className="text-gray-500">Expiry</span><span className="text-white">Perpetual</span>
+                    <span className="text-gray-500">{tr('expiry')}</span><span className="text-white">{tr('perpetual')}</span>
                 </div>
                 <div className="flex justify-between text-[12px]">
                     <span className="text-gray-500">Leverage</span><span className="text-white">{leverage}x</span>
                 </div>
                 <div className="flex justify-between text-[12px]">
-                    <span className="text-gray-500">Mode</span><span className="text-white capitalize">{marginMode}</span>
+                    <span className="text-gray-500">{tr('mode')}</span><span className="text-white capitalize">{marginMode === 'cross' ? tr('cross') : tr('isolated')}</span>
                 </div>
             </div>
 

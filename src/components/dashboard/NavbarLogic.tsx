@@ -10,15 +10,21 @@ import { apiRequest } from "@/lib/api";
 import { getSocket } from "@/lib/socket";
 import { useRouter } from "next/navigation";
 import { useClerk } from "@clerk/nextjs";
+import {
+  APP_LANGUAGE_EVENT,
+  APP_LANGUAGE_STORAGE_KEY,
+  AppLanguageCode,
+  getAppLanguage,
+  t,
+} from "@/lib/i18n";
 
 const languages = [
   { code: "Eng", name: "English", flag: "https://flagcdn.com/us.svg" },
-  { code: "Ger", name: "German", flag: "https://flagcdn.com/de.svg" },
-  { code: "Fra", name: "French", flag: "https://flagcdn.com/fr.svg" },
+  { code: "Esp", name: "Spanish", flag: "https://flagcdn.com/es.svg" },
 ];
 
 interface NavMenu {
-  label: string;
+  key: "deposit" | "withdraw" | "market" | "futures" | "support";
   href?: string;
   onClick?: () => void;
 }
@@ -38,11 +44,11 @@ interface UserProfile {
 
 // Define available menu items based on features
 const availableMenuItems: Record<string, NavMenu> = {
-  "Deposit": { label: "Deposit", href: "/dashboard/deposit" },
-  "Withdraw": { label: "Withdraw" },
-  "Market": { label: "Market", href: "/dashboard/market" },
-  "Futures": { label: "Futures", href: "/dashboard/futures-trade" },
-  "Support": { label: "Support" },
+  "Deposit": { key: "deposit", href: "/dashboard/deposit" },
+  "Withdraw": { key: "withdraw" },
+  "Market": { key: "market", href: "/dashboard/market" },
+  "Futures": { key: "futures", href: "/dashboard/futures-trade" },
+  "Support": { key: "support" },
 };
 
 export default function Navbar() {
@@ -61,7 +67,13 @@ export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isLangOpen, setIsLangOpen] = useState(false);
-  const [selectedLang, setSelectedLang] = useState(languages[0]);
+  const [selectedLang, setSelectedLang] = useState(() => {
+    if (typeof window === "undefined") return languages[0];
+    const storedCode = localStorage.getItem(APP_LANGUAGE_STORAGE_KEY);
+    return languages.find((lang) => lang.code === storedCode) || languages[0];
+  });
+  const [lang, setLang] = useState<AppLanguageCode>("Eng");
+  const tr = (key: string) => t(key, lang);
   const [isSupportOpen, setIsSupportOpen] = useState(false);
   const [isWithdrawOpen, setIsWithdrawOpen] = useState(false);
   const [userRole, setUserRole] = useState("user");
@@ -90,6 +102,7 @@ export default function Navbar() {
         // menu items can be toggled later by role
         const items = [
           availableMenuItems["Deposit"],
+          availableMenuItems["Withdraw"],
           availableMenuItems["Market"],
           availableMenuItems["Futures"],
         ];
@@ -146,6 +159,30 @@ export default function Navbar() {
   }, []);
 
   useEffect(() => {
+    localStorage.setItem(APP_LANGUAGE_STORAGE_KEY, selectedLang.code);
+    window.dispatchEvent(new CustomEvent(APP_LANGUAGE_EVENT, { detail: { code: selectedLang.code } }));
+  }, [selectedLang]);
+
+  useEffect(() => {
+    const applyLanguage = () => setLang(getAppLanguage());
+    applyLanguage();
+    window.addEventListener("storage", applyLanguage);
+    window.addEventListener(APP_LANGUAGE_EVENT, applyLanguage as EventListener);
+    return () => {
+      window.removeEventListener("storage", applyLanguage);
+      window.removeEventListener(APP_LANGUAGE_EVENT, applyLanguage as EventListener);
+    };
+  }, []);
+
+  const getMenuLabel = (key: NavMenu["key"]) => {
+    if (key === "deposit") return tr("deposit");
+    if (key === "withdraw") return tr("withdraw");
+    if (key === "market") return tr("market");
+    if (key === "futures") return tr("futures");
+    return tr("support");
+  };
+
+  useEffect(() => {
     document.body.style.overflow = isMenuOpen ? "hidden" : "unset";
     return () => {
       document.body.style.overflow = "unset";
@@ -184,42 +221,35 @@ export default function Navbar() {
             {activeMenuItems.map((item) =>
               item.href ? (
                 <Link
-                  key={item.label}
+                  key={item.key}
                   href={item.href}
                   className="text-gray-400 hover:text-white transition-colors text-sm font-medium font-manrope"
                 >
-                  {item.label}
+                  {getMenuLabel(item.key)}
                 </Link>
               ) : (
                 <button
-                  key={item.label}
+                  key={item.key}
                   onClick={() => {
-                    if (item.label === 'Withdraw') setIsWithdrawOpen(true);
-                    else if (item.label === 'Support') setIsSupportOpen(true);
+                    if (item.key === "withdraw") setIsWithdrawOpen(true);
+                    else if (item.key === "support") setIsSupportOpen(true);
                     else item.onClick?.();
                   }}
                   className="text-gray-400 hover:text-white transition-colors text-sm font-medium font-manrope"
                 >
-                  {item.label}
+                  {getMenuLabel(item.key)}
                 </button>
               )
             )}
 
-            <button
-              onClick={() => setIsWithdrawOpen(true)}
-              className="group flex items-center gap-1 text-gray-400 hover:text-white transition-colors text-sm font-medium font-manrope"
-            >
-              Withdraw
-            </button>
-
-            <NavItem label="Trade" type="trade" />
-            <NavItem label="More" type="more" />
+            <NavItem label={tr("tradeNav")} type="trade" />
+            <NavItem label={tr("moreNav")} type="more" />
 
             <button
               onClick={() => setIsSupportOpen(true)}
               className="flex items-center gap-1 text-gray-400 hover:text-white text-sm font-medium"
             >
-              Support
+              {tr("support")}
             </button>
           </div>
         </div>
@@ -310,7 +340,7 @@ export default function Navbar() {
                     onClick={() => setIsProfileOpen(false)}
                     className="px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/5 cursor-pointer transition-colors"
                   >
-                    My Profile
+                    {tr("myProfile")}
                   </div>
                 </Link>
                 <div
@@ -320,7 +350,7 @@ export default function Navbar() {
                   }}
                   className="px-4 py-2 text-sm text-red-500 hover:bg-red-500/10 cursor-pointer transition-colors border-t border-white/5 mt-1 pt-2"
                 >
-                  Log Out
+                  {tr("logOut")}
                 </div>
               </div>
             )}
@@ -398,54 +428,44 @@ export default function Navbar() {
 
           <div className="flex flex-col space-y-1">
             <p className="text-[11px] text-gray-500 uppercase font-bold tracking-widest mb-2 px-2">
-              Navigation
+              {tr("navigation")}
             </p>
 
             {activeMenuItems.map((item) =>
               item.href ? (
                 <Link
-                  key={item.label}
+                  key={item.key}
                   href={item.href}
                   onClick={closeMobileMenu}
                   className="text-gray-300 text-lg py-4 px-2 border-b border-white/5 hover:text-white cursor-pointer transition-colors font-manrope"
                 >
-                  {item.label}
+                  {getMenuLabel(item.key)}
                 </Link>
               ) : (
                 <button
-                  key={item.label}
+                  key={item.key}
                   onClick={() => {
                     closeMobileMenu();
-                    if (item.label === 'Withdraw') setIsWithdrawOpen(true);
-                    else if (item.label === 'Support') setIsSupportOpen(true);
+                    if (item.key === "withdraw") setIsWithdrawOpen(true);
+                    else if (item.key === "support") setIsSupportOpen(true);
                     else item.onClick?.();
                   }}
                   className="text-gray-300 text-lg py-4 px-2 border-b border-white/5 hover:text-white cursor-pointer transition-colors font-manrope text-left"
                 >
-                  {item.label}
+                  {getMenuLabel(item.key)}
                 </button>
               )
             )}
 
-            <button
-              onClick={() => {
-                closeMobileMenu();
-                setIsWithdrawOpen(true);
-              }}
-              className="text-gray-300 text-lg py-4 px-2 border-b border-white/5 hover:text-white cursor-pointer transition-colors font-manrope text-left"
-            >
-              Withdraw
-            </button>
-
             <div className="py-2">
               <NavItem
-                label="Trade"
+                label={tr("tradeNav")}
                 type="trade" 
                 isMobile={true}
                 onItemClick={closeMobileMenu}
               />
               <NavItem 
-                label="More" 
+                label={tr("moreNav")} 
                 type="more" 
                 isMobile={true}
                 onItemClick={closeMobileMenu}
@@ -454,7 +474,7 @@ export default function Navbar() {
                 onClick={() => { setIsSupportOpen(true); closeMobileMenu(); }}
                 className="flex items-center gap-1 text-gray-400 hover:text-white transition-all py-4 cursor-pointer w-full justify-between text-lg border-b border-white/5 font-manrope"
               >
-                Support
+                {tr("support")}
               </button>
             </div>
           </div>
@@ -467,7 +487,7 @@ export default function Navbar() {
               }}
               className="w-full bg-red-500/10 text-red-500 py-4 rounded-2xl font-bold cursor-pointer hover:bg-red-500/20 transition-all border border-red-500/20"
             >
-              Log Out
+              {tr("logOut")}
             </button>
           </div>
 

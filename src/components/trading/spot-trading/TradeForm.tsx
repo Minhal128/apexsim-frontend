@@ -7,6 +7,7 @@ import { apiRequest } from "@/lib/api";
 import { useToast } from "@/components/ToastContext";
 import { useRouter } from "next/navigation";
 import { initializeSocket } from "@/lib/socket";
+import { APP_LANGUAGE_EVENT, AppLanguageCode, getAppLanguage, t } from "@/lib/i18n";
 
 type OrderType = "Limit" | "Market" | "Stop limit";
 
@@ -34,6 +35,19 @@ export default function TradeForm({ symbol = "BTC/USDT", currentPrice }: TradeFo
     apiRequest('/profile/me').then(data => setUserId(data._id)).catch(console.error);
   }, []);
   const [loading, setLoading] = useState(false);
+  const [lang, setLang] = useState<AppLanguageCode>("Eng");
+  const tr = (key: string) => t(key, lang);
+
+  useEffect(() => {
+    const applyLanguage = () => setLang(getAppLanguage());
+    applyLanguage();
+    window.addEventListener('storage', applyLanguage);
+    window.addEventListener(APP_LANGUAGE_EVENT, applyLanguage as EventListener);
+    return () => {
+      window.removeEventListener('storage', applyLanguage);
+      window.removeEventListener(APP_LANGUAGE_EVENT, applyLanguage as EventListener);
+    };
+  }, []);
 
   const fetchBalances = async () => {
     try {
@@ -196,11 +210,11 @@ export default function TradeForm({ symbol = "BTC/USDT", currentPrice }: TradeFo
       {/* Trading Type Tabs */}
       <div className="flex gap-4 text-[13px] font-semibold border-b border-white/5 items-center">
         <div className="relative pb-2 cursor-pointer">
-          <span className="text-white">Spot</span>
+          <span className="text-white">{tr('spot')}</span>
           <div className="absolute bottom-0 left-0 w-full h-0.5 bg-[#00B595]" />
         </div>
         <span className="text-gray-500 hover:text-gray-300 cursor-pointer" onClick={handleSwitchToFutures}>
-          Futures
+          {tr('futures')}
         </span>
         {/* Display selected asset icon and name */}
         <div className="ml-auto flex items-center gap-2">
@@ -230,36 +244,36 @@ export default function TradeForm({ symbol = "BTC/USDT", currentPrice }: TradeFo
           className={`flex-1 py-2.5 text-md  rounded cursor-pointer transition-all ${side === "buy" ? "bg-white text-black" : "text-gray-400"
             }`}
         >
-          Buy {symbol.split('/')[0]}
+          {tr('buy')} {symbol.split('/')[0]}
         </button>
         <button
           onClick={() => setSide("sell")}
           className={`flex-1 py-2.5 text-md  rounded cursor-pointer transition-all ${side === "sell" ? "bg-[#323539] text-white" : "text-gray-400"
             }`}
         >
-          Sell {symbol.split('/')[0]}
+          {tr('sell')} {symbol.split('/')[0]}
         </button>
       </div>
 
       <div className="space-y-3.5">
         <div className="flex gap-4 text-[13px] font-semibold uppercase tracking-wider">
-          {(["Limit", "Market", "Stop limit"] as OrderType[]).map((t) => (
+          {(["Limit", "Market", "Stop limit"] as OrderType[]).map((tVal) => (
             <span
-              key={t}
-              onClick={() => setOrderType(t)}
-              className={`cursor-pointer transition-colors ${orderType === t
+              key={tVal}
+              onClick={() => setOrderType(tVal)}
+              className={`cursor-pointer transition-colors ${orderType === tVal
                 ? "text-white "
                 : "text-gray-500 hover:text-gray-300"
                 }`}
             >
-              {t}
+              {tVal === 'Limit' ? tr('limit') : tVal === 'Market' ? tr('market') : tr('stopLimit')}
             </span>
           ))}
         </div>
 
         <div className="flex gap-2 text-[12px] text-gray-500 items-center">
           <span>
-            Avbl{" "}
+            {tr('avbl')}{" "}
             <span className="text-gray-300 font-medium">
               {side === "buy" ? `${usdtBalance} USDT` : `${assetBalance} ${assetBase}`}
             </span>
@@ -276,7 +290,7 @@ export default function TradeForm({ symbol = "BTC/USDT", currentPrice }: TradeFo
               {/* Price Field */}
               <div className="relative group">
                 <input
-                  placeholder={`Price (${symbol.split('/')[1] || "USDT"})`}
+                  placeholder={`${tr('price')} (${symbol.split('/')[1] || "USDT"})`}
                   type="text"
                   value={price}
                   onChange={(e) => setPrice(e.target.value)}
@@ -286,7 +300,7 @@ export default function TradeForm({ symbol = "BTC/USDT", currentPrice }: TradeFo
               {/* Amount Field */}
               <div className="relative group">
                 <input
-                  placeholder={`Amount (${symbol.split('/')[0]})`}
+                  placeholder={`${tr('amount')} (${symbol.split('/')[0]})`}
                   type="number"
                   value={amount}
                   onChange={(e) => handleAmountChange(e.target.value)}
@@ -300,7 +314,7 @@ export default function TradeForm({ symbol = "BTC/USDT", currentPrice }: TradeFo
             <div className="flex flex-col gap-3">
               <div className="relative group">
                 <input
-                  placeholder="Market Price"
+                  placeholder={tr('marketPrice')}
                   type="text"
                   value={`~${currentMarketPrice} ${symbol.split('/')[1] || "USDT"}`}
                   readOnly
@@ -309,7 +323,7 @@ export default function TradeForm({ symbol = "BTC/USDT", currentPrice }: TradeFo
               </div>
               <div className="relative group">
                 <input
-                  placeholder={`Amount (${symbol.split('/')[0]})`}
+                  placeholder={`${tr('amount')} (${symbol.split('/')[0]})`}
                   type="number"
                   value={amount}
                   onChange={(e) => handleAmountChange(e.target.value)}
@@ -322,7 +336,7 @@ export default function TradeForm({ symbol = "BTC/USDT", currentPrice }: TradeFo
           {orderType === "Stop limit" && (
             <div className="h-22 flex items-center justify-center border border-dashed border-white/10 rounded-md">
               <span className="text-gray-600 text-[10px]">
-                No parameters for Stop Limit
+                {lang === 'Esp' ? 'Sin parámetros para Stop límite' : 'No parameters for Stop Limit'}
               </span>
             </div>
           )}
@@ -394,7 +408,7 @@ export default function TradeForm({ symbol = "BTC/USDT", currentPrice }: TradeFo
             value={total}
             onChange={(e) => handleTotalChange(e.target.value)}
             className="w-full bg-[#181B1F] border border-white/5 rounded-md p-2.5 text-sm text-white outline-none focus:border-[#3b82f6]"
-            placeholder="Total (USDT)"
+            placeholder={`${tr('total')} (USDT)`}
           />
         </div>
 
@@ -405,11 +419,11 @@ export default function TradeForm({ symbol = "BTC/USDT", currentPrice }: TradeFo
               className="w-3.5 h-3.5 rounded-full border border-gray-600 flex items-center justify-center group-hover:border-gray-400"
             />
             <span className="text-[17px] text-gray-50 font-medium">
-              {orderType === "Market" ? "Max slippage" : "Advanced options"}
+              {orderType === "Market" ? tr('maxSlippage') : tr('advancedOptions')}
             </span>
           </div>
           <div className="flex gap-2 text-[17px] mt-1">
-            <span className="text-gray-500">Max Buy</span>
+            <span className="text-gray-500">{tr('maxBuy')}</span>
             <span className="text-white">
               {((orderType === 'Market' ? currentMarketPrice : price) && parseFloat(orderType === 'Market' ? currentMarketPrice : price) > 0) 
                 ? (parseFloat(usdtBalance) / parseFloat(orderType === 'Market' ? currentMarketPrice : price)).toFixed(6) 
@@ -426,7 +440,7 @@ export default function TradeForm({ symbol = "BTC/USDT", currentPrice }: TradeFo
             : "bg-[#ef5350] text-white"
             } ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
         >
-          {loading ? "Processing..." : `${side.toUpperCase()} ${symbol.split('/')[0]}`}
+          {loading ? tr('processing') : `${side === 'buy' ? tr('buy') : tr('sell')} ${symbol.split('/')[0]}`}
         </button>
 
         <div className="flex gap-2.5 pt-1 ">
@@ -434,13 +448,13 @@ export default function TradeForm({ symbol = "BTC/USDT", currentPrice }: TradeFo
             onClick={() => router.push('/dashboard/deposit')}
             className="flex-1 py-2 bg-[#24262b] rounded-md text-[15px]  text-gray-300 hover:bg-[#2d3036] cursor-pointer transition-colors"
           >
-            Deposit
+            {tr('deposit')}
           </button>
           <button
             onClick={() => router.push('/dashboard/wallet')}
             className="flex-1 py-2 bg-[#24262b] rounded-md text-[15px] text-gray-300 hover:bg-[#2d3036] cursor-pointer transition-colors"
           >
-            Transfer
+            {tr('transfer')}
           </button>
         </div>
 
@@ -448,13 +462,13 @@ export default function TradeForm({ symbol = "BTC/USDT", currentPrice }: TradeFo
           <div className="pt-2 flex flex-col gap-1 border-t border-white/5 mt-2">
             <div className="flex justify-between text-[11px]">
               <span className="text-gray-500 border-b border-dotted border-gray-700">
-                USDT Balance
+                {lang === 'Esp' ? 'Balance USDT' : 'USDT Balance'}
               </span>
               <span className="text-white font-medium">{usdtBalance} USDT</span>
             </div>
             <div className="flex justify-between text-[11px]">
               <span className="text-gray-500 border-b border-dotted border-gray-700">
-                {assetBase} Balance
+                {assetBase} {tr('balance')}
               </span>
               <span className="text-white font-medium">{assetBalance} {assetBase}</span>
             </div>

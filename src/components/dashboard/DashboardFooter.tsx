@@ -1,9 +1,24 @@
 "use client";
 import React from 'react';
 import Image from 'next/image';
+import { APP_LANGUAGE_EVENT, AppLanguageCode, getAppLanguage, t } from '@/lib/i18n';
 
 
 export default function DashboardFooter() {
+    const [lang, setLang] = React.useState<AppLanguageCode>('Eng');
+    const tr = (key: string) => t(key, lang);
+
+    React.useEffect(() => {
+        const applyLanguage = () => setLang(getAppLanguage());
+        applyLanguage();
+        window.addEventListener('storage', applyLanguage);
+        window.addEventListener(APP_LANGUAGE_EVENT, applyLanguage as EventListener);
+        return () => {
+            window.removeEventListener('storage', applyLanguage);
+            window.removeEventListener(APP_LANGUAGE_EVENT, applyLanguage as EventListener);
+        };
+    }, []);
+
     return (
         <footer className="text-white pt-5 pb-10 md:px-6 overflow-hidden">
             <div className="max-w-9xl mx-auto">
@@ -14,18 +29,18 @@ export default function DashboardFooter() {
                     <div className="md:col-span-4 md:ml-20 ml-5">
                         <h3 className="md:text-2xl text-xl font-bricolage font-bold mb-3 tracking-wide">APEXSIM</h3>
                         <p className="text-gray-400 mb-3 font-manrope leading-6 max-w-xs">
-                            Securely Protecting Your Digital Wealth, Today And Tomorrow.
+                            {tr('footerTagline')}
                         </p>
                     </div>
                 </div>
 
                 <div className="border-t max-w-7xl font-manrope mx-auto border-blue-700/20 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 relative z-10 ">
                     <p className="text-gray-500 text-sm tracking-widest uppercase">
-                        COPYRIGHT 2025, ALL RIGHT RESERVED
+                        {tr('copyright2025')}
                     </p>
                     <div className="flex gap-8">
-                        <a href="#" className="text-gray-500 hover:text-white text-sm tracking-widest uppercase cursor-pointer">PRIVACY</a>
-                        <a href="#" className="text-gray-500 hover:text-white text-sm tracking-widest uppercase cursor-pointer">TERMS</a>
+                        <a href="#" className="text-gray-500 hover:text-white text-sm tracking-widest uppercase cursor-pointer">{tr('privacy')}</a>
+                        <a href="#" className="text-gray-500 hover:text-white text-sm tracking-widest uppercase cursor-pointer">{tr('terms')}</a>
                     </div>
                 </div>
 

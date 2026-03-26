@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { X, RefreshCw } from "lucide-react";
 import { apiRequest } from "@/lib/api";
+import { APP_LANGUAGE_EVENT, AppLanguageCode, getAppLanguage, t } from "@/lib/i18n";
 
 interface Props {
   open: boolean;
@@ -24,11 +25,24 @@ export default function TradeHistoryModal({ open, onClose }: Props) {
   const [trades, setTrades] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState<"all" | "buy" | "sell">("all");
+  const [lang, setLang] = useState<AppLanguageCode>("Eng");
+  const tr = (key: string) => t(key, lang);
   const modalRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (open) fetchHistory();
   }, [open]);
+
+  useEffect(() => {
+    const applyLanguage = () => setLang(getAppLanguage());
+    applyLanguage();
+    window.addEventListener("storage", applyLanguage);
+    window.addEventListener(APP_LANGUAGE_EVENT, applyLanguage as EventListener);
+    return () => {
+      window.removeEventListener("storage", applyLanguage);
+      window.removeEventListener(APP_LANGUAGE_EVENT, applyLanguage as EventListener);
+    };
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -81,25 +95,25 @@ export default function TradeHistoryModal({ open, onClose }: Props) {
       </div>
 
       {loading && trades.length === 0 ? (
-        <div className="text-center text-gray-500 py-12 text-sm">Loading...</div>
+        <div className="text-center text-gray-500 py-12 text-sm">{tr("loadingDots")}</div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-12">
           <img src="/images/search.png" alt="" className="w-14 h-14 mx-auto mb-3 opacity-60" />
-          <p className="text-gray-500 text-sm font-semibold">No trade history found</p>
+          <p className="text-gray-500 text-sm font-semibold">{tr("noTradeHistoryFound")}</p>
         </div>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm min-w-[560px]">
             <thead>
               <tr className="text-gray-500 text-xs border-b border-white/5">
-                <th className="py-2 text-left font-semibold">Symbol</th>
-                <th className="py-2 text-left font-semibold">Type</th>
-                <th className="py-2 text-left font-semibold">Market</th>
-                <th className="py-2 text-left font-semibold">Price</th>
-                <th className="py-2 text-left font-semibold">Amount</th>
-                <th className="py-2 text-left font-semibold">Total</th>
-                <th className="py-2 text-left font-semibold">Status</th>
-                <th className="py-2 text-left font-semibold">Date</th>
+                <th className="py-2 text-left font-semibold">{tr("symbol")}</th>
+                <th className="py-2 text-left font-semibold">{tr("type")}</th>
+                <th className="py-2 text-left font-semibold">{tr("market")}</th>
+                <th className="py-2 text-left font-semibold">{tr("price")}</th>
+                <th className="py-2 text-left font-semibold">{tr("amount")}</th>
+                <th className="py-2 text-left font-semibold">{tr("total")}</th>
+                <th className="py-2 text-left font-semibold">{tr("status")}</th>
+                <th className="py-2 text-left font-semibold">{tr("date")}</th>
               </tr>
             </thead>
             <tbody>
@@ -136,8 +150,8 @@ export default function TradeHistoryModal({ open, onClose }: Props) {
       <div className="md:hidden fixed inset-0 z-50 bg-black/60">
         <div className="fixed inset-0 bg-[#181818] text-white overflow-y-auto px-5 py-6">
           <button onClick={onClose} className="absolute top-5 right-5 text-gray-400"><X size={22} /></button>
-          <h2 className="text-lg font-semibold font-manrope">Trade History</h2>
-          <p className="text-xs text-gray-500 mt-1">Your completed and cancelled orders</p>
+          <h2 className="text-lg font-semibold font-manrope">{tr("tradeHistoryTitle")}</h2>
+          <p className="text-xs text-gray-500 mt-1">{tr("yourCompletedCancelledOrders")}</p>
           <TableContent />
         </div>
       </div>
@@ -146,8 +160,8 @@ export default function TradeHistoryModal({ open, onClose }: Props) {
       <div className="hidden md:flex fixed inset-0 z-50 bg-black/60 items-center justify-center">
         <div ref={modalRef} className="bg-[#181818] rounded-xl w-full max-w-4xl text-white px-8 py-8 relative max-h-[85vh] overflow-y-auto">
           <button onClick={onClose} className="absolute top-5 right-5 text-gray-400 hover:text-white"><X size={22} /></button>
-          <h2 className="text-lg font-semibold font-manrope">Trade History</h2>
-          <p className="text-xs text-gray-500 mt-1">Your completed and cancelled orders</p>
+          <h2 className="text-lg font-semibold font-manrope">{tr("tradeHistoryTitle")}</h2>
+          <p className="text-xs text-gray-500 mt-1">{tr("yourCompletedCancelledOrders")}</p>
           <TableContent />
         </div>
       </div>

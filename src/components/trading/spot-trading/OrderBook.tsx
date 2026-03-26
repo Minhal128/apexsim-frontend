@@ -4,6 +4,7 @@ import { FaCaretDown } from "react-icons/fa";
 import { BsThreeDotsVertical } from "react-icons/bs";
 import { LuSettings2 } from "react-icons/lu";
 import { useState } from 'react';
+import { APP_LANGUAGE_EVENT, AppLanguageCode, getAppLanguage, t } from '@/lib/i18n';
 
 const RECENT_TRADES_DATA = [
     { price: 19967.98, amount: "0.10016", time: "19:59:01", side: 'sell' },
@@ -61,6 +62,19 @@ export default function OrderBook({ symbol = "BTC/USDT", currentPrice }: { symbo
     const [activeTab, setActiveTab] = useState<'liquidity' | 'trades'>('liquidity');
     const [precision, setPrecision] = useState('0.01');
     const [showPrecisionMenu, setShowPrecisionMenu] = useState(false);
+    const [lang, setLang] = useState<AppLanguageCode>('Eng');
+    const tr = (key: string) => t(key, lang);
+
+    React.useEffect(() => {
+        const applyLanguage = () => setLang(getAppLanguage());
+        applyLanguage();
+        window.addEventListener('storage', applyLanguage);
+        window.addEventListener(APP_LANGUAGE_EVENT, applyLanguage as EventListener);
+        return () => {
+            window.removeEventListener('storage', applyLanguage);
+            window.removeEventListener(APP_LANGUAGE_EVENT, applyLanguage as EventListener);
+        };
+    }, []);
 
     const precisionOptions = ['0.1', '0.01', '0.001'];
     
@@ -88,7 +102,7 @@ export default function OrderBook({ symbol = "BTC/USDT", currentPrice }: { symbo
                             className="relative h-full flex items-center cursor-pointer group"
                         >
                             <span className={`text-[13px] font-medium transition-colors ${activeTab === 'liquidity' ? 'text-white' : 'text-gray-500 group-hover:text-gray-300'}`}>
-                                Liquidity
+                                {tr('liquidity')}
                             </span>
                             {activeTab === 'liquidity' && (
                                 <div className="absolute bottom-0 left-0 w-full h-0.5 bg-[#00B595]" />
@@ -100,7 +114,7 @@ export default function OrderBook({ symbol = "BTC/USDT", currentPrice }: { symbo
                             className="relative h-full flex items-center cursor-pointer group"
                         >
                             <span className={`text-[13px] font-medium transition-colors ${activeTab === 'trades' ? 'text-white' : 'text-gray-500 group-hover:text-gray-300'}`}>
-                                Recent trades
+                                {tr('recentTrades')}
                             </span>
                             {activeTab === 'trades' && (
                                 <div className="absolute bottom-0 left-0 w-full h-0.5 bg-[#00B595]" />
@@ -143,8 +157,8 @@ export default function OrderBook({ symbol = "BTC/USDT", currentPrice }: { symbo
                 <>
                     <div className="grid grid-cols-3 text-[10px] text-gray-500 px-3 pb-1 uppercase font-medium">
                           <span>Price({symbol.split('/')[1] || 'USDT'})</span>
-                          <span className="text-right">Amount({symbol.split('/')[0]})</span>
-                          <span className="text-right">Total</span>
+                          <span className="text-right">{tr('amount')}({symbol.split('/')[0]})</span>
+                          <span className="text-right">{tr('total')}</span>
                     </div>
 
                     <div className="grow overflow-y-auto no-scrollbar pb-2">
@@ -176,8 +190,8 @@ export default function OrderBook({ symbol = "BTC/USDT", currentPrice }: { symbo
                 <>
                     <div className="grid grid-cols-3 text-[10px] text-gray-500 px-3 pb-1 uppercase font-medium">
                           <span>Price({symbol.split('/')[1] || 'USDT'})</span>
-                          <span className="text-right">Amount({symbol.split('/')[0]})</span>
-                          <span className="text-right">Time</span>
+                          <span className="text-right">{tr('amount')}({symbol.split('/')[0]})</span>
+                          <span className="text-right">{tr('time')}</span>
                     </div>
 
                     <div className="grow overflow-y-auto no-scrollbar pb-2">

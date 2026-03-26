@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import { FaChartLine } from "react-icons/fa";
 import { MdOutlineOpenInFull, MdOutlineGridView } from "react-icons/md";
+import { APP_LANGUAGE_EVENT, AppLanguageCode, getAppLanguage, t } from "@/lib/i18n";
 
 // Dynamically import TradingView Advanced Real-Time Chart widget
 const AdvancedRealTimeChart = dynamic(
@@ -52,6 +53,8 @@ export default function TradingChart({
   coinName = "Bitcoin",
   marketInfo,
 }: TradingChartProps) {
+  const [lang, setLang] = useState<AppLanguageCode>("Eng");
+  const tr = (key: string) => t(key, lang);
   const activeTab = activeView;
   const [quoteData, setQuoteData] = useState<TwelveDataQuote | null>(null);
   const [loading, setLoading] = useState(false);
@@ -202,6 +205,17 @@ export default function TradingChart({
     }
   }, [activeTab, symbol]);
 
+  useEffect(() => {
+    const applyLanguage = () => setLang(getAppLanguage());
+    applyLanguage();
+    window.addEventListener('storage', applyLanguage);
+    window.addEventListener(APP_LANGUAGE_EVENT, applyLanguage as EventListener);
+    return () => {
+      window.removeEventListener('storage', applyLanguage);
+      window.removeEventListener(APP_LANGUAGE_EVENT, applyLanguage as EventListener);
+    };
+  }, []);
+
   const formatPrice = (valStr?: string) => {
     if (!valStr) return "N/A";
     const val = parseFloat(valStr);
@@ -220,7 +234,7 @@ export default function TradingChart({
               interval="D"
               timezone="Etc/UTC"
               style="1"
-              locale="en"
+              locale={lang === "Esp" ? "es" : "en"}
               enable_publishing={false}
               allow_symbol_change={true}
               save_image={false}
@@ -248,13 +262,13 @@ export default function TradingChart({
             </div>
 
             <div className="w-full max-w-4xl">
-              <h3 className="text-gray-100 text-lg font-semibold">Information</h3>
+              <h3 className="text-gray-100 text-lg font-semibold">{tr('information')}</h3>
               {loading ? (
-                <div className="text-gray-400 text-sm mt-2">Loading data...</div>
+                <div className="text-gray-400 text-sm mt-2">{tr('loadingData')}</div>
               ) : (quoteData || marketInfo) ? (
                 <div className="mt-2 space-y-2">
                   <InfoRow
-                    label="Price"
+                    label={tr('price')}
                     value={
                       (marketInfo?.usd ?? marketInfo?.price ?? marketInfo?.value ?? marketInfo?.regularMarketPrice) !== undefined && (marketInfo?.usd ?? marketInfo?.price ?? marketInfo?.value ?? marketInfo?.regularMarketPrice) !== null
                         ? `$${(marketInfo?.usd ?? marketInfo?.price ?? marketInfo?.value ?? marketInfo?.regularMarketPrice)!.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 })}`
@@ -262,7 +276,7 @@ export default function TradingChart({
                     }
                   />
                   <InfoRow
-                    label="24h Change"
+                    label={tr('change24h')}
                     value={
                       (marketInfo?.usd_24h_change ?? marketInfo?.change24h ?? marketInfo?.regularMarketChangePercent) !== undefined && (marketInfo?.usd_24h_change ?? marketInfo?.change24h ?? marketInfo?.regularMarketChangePercent) !== null
                         ? `${(marketInfo?.usd_24h_change ?? marketInfo?.change24h ?? marketInfo?.regularMarketChangePercent)!.toFixed(2)}%`
@@ -272,7 +286,7 @@ export default function TradingChart({
                     }
                   />
                   <InfoRow
-                    label="Previous Close"
+                    label={tr('previousClose')}
                     value={
                       (marketInfo?.usd ?? marketInfo?.price ?? marketInfo?.value ?? marketInfo?.regularMarketPrice) !== undefined && (marketInfo?.usd_24h_change ?? marketInfo?.change24h ?? marketInfo?.regularMarketChangePercent) !== undefined
                         ? formatPrice(String((marketInfo?.usd ?? marketInfo?.price ?? marketInfo?.value ?? marketInfo?.regularMarketPrice)! - ((marketInfo?.usd_24h_change ?? marketInfo?.change24h ?? marketInfo?.regularMarketChangePercent)! / 100) * (marketInfo?.usd ?? marketInfo?.price ?? marketInfo?.value ?? marketInfo?.regularMarketPrice)!))
@@ -280,7 +294,7 @@ export default function TradingChart({
                     }
                   />
                   <InfoRow
-                    label="24h High"
+                    label={tr('high24h')}
                     value={
                       (marketInfo?.high24h ?? marketInfo?.regularMarketDayHigh)
                         ? `$${(marketInfo.high24h ?? marketInfo.regularMarketDayHigh)?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 })}`
@@ -288,7 +302,7 @@ export default function TradingChart({
                     }
                   />
                   <InfoRow
-                    label="24h Low"
+                    label={tr('low24h')}
                     value={
                       (marketInfo?.low24h ?? marketInfo?.regularMarketDayLow)
                         ? `$${(marketInfo.low24h ?? marketInfo.regularMarketDayLow)?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 })}`
@@ -298,7 +312,7 @@ export default function TradingChart({
                 </div>
               ) : (
                 <div className="mt-2">
-                  <div className="text-gray-400 text-sm">Data not available</div>
+                  <div className="text-gray-400 text-sm">{tr('dataNotAvailable')}</div>
                 </div>
               )}
             </div>

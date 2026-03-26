@@ -7,6 +7,7 @@ import ProfileSettings from "./ProfileSettingsPage";
 import WithdrawModal from "../dashboard/WithdrawModel";
 import { apiRequest } from "@/lib/api";
 import { useToast } from "@/components/ToastContext";
+import { APP_LANGUAGE_EVENT, AppLanguageCode, getAppLanguage, t } from "@/lib/i18n";
 
 export default function ProfileMainPage() {
   const router = useRouter();
@@ -17,6 +18,8 @@ export default function ProfileMainPage() {
   const [loading, setLoading] = useState(true);
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [showDepositModal, setShowDepositModal] = useState(false);
+  const [lang, setLang] = useState<AppLanguageCode>("Eng");
+  const tr = (key: string) => t(key, lang);
 
   const fetchData = async () => {
     try {
@@ -48,6 +51,17 @@ export default function ProfileMainPage() {
     fetchData();
   }, []);
 
+  useEffect(() => {
+    const applyLanguage = () => setLang(getAppLanguage());
+    applyLanguage();
+    window.addEventListener("storage", applyLanguage);
+    window.addEventListener(APP_LANGUAGE_EVENT, applyLanguage as EventListener);
+    return () => {
+      window.removeEventListener("storage", applyLanguage);
+      window.removeEventListener(APP_LANGUAGE_EVENT, applyLanguage as EventListener);
+    };
+  }, []);
+
   const handleDepositClose = () => {
     setShowDepositModal(false);
     fetchData(); // Refresh wallet after deposit
@@ -59,6 +73,11 @@ export default function ProfileMainPage() {
   };
 
   const tabs = ["Overview", "Security", "Settings"];
+  const tabLabel: Record<string, string> = {
+    Overview: tr("overview"),
+    Security: tr("security"),
+    Settings: tr("settings"),
+  };
 
   if (loading) {
     return (
@@ -78,7 +97,7 @@ export default function ProfileMainPage() {
     <div className="min-h-screen bg-[#181818] text-white md:py-8 py-4 font-manrope">
       <div className="max-w-350 mx-auto px-4 md:px-0">
         <div className="flex md:flex-row flex-col items-start md:items-center mb-8 justify-between gap-6">
-          <h1 className="text-3xl font-bold tracking-tight">Profile</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{tr("profile")}</h1>
         </div>
 
         <div className="flex bg-[#1D1D1D] py-6 md:py-12 flex-col md:flex-row">
@@ -99,7 +118,7 @@ export default function ProfileMainPage() {
                 {activeTab === tab && (
                   <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-10 bg-white" />
                 )}
-                {tab}
+                {tabLabel[tab] || tab}
               </button>
             ))}
           </aside>
@@ -127,10 +146,10 @@ export default function ProfileMainPage() {
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-[#181818] border border-white/10 rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold">Quick Deposit</h2>
+              <h2 className="text-xl font-bold">{tr("quickDeposit")}</h2>
               <button onClick={handleDepositClose} className="text-gray-400 hover:text-white text-xl">✕</button>
             </div>
-            <DepositInlineForm onComplete={handleDepositClose} />
+            <DepositInlineForm onComplete={handleDepositClose} lang={lang} />
           </div>
         </div>
       )}
@@ -139,12 +158,13 @@ export default function ProfileMainPage() {
 }
 
 // Inline deposit form for the modal
-function DepositInlineForm({ onComplete }: { onComplete: () => void }) {
+function DepositInlineForm({ onComplete, lang }: { onComplete: () => void; lang: AppLanguageCode }) {
   const [depositType, setDepositType] = useState<"crypto" | "fiat">("crypto");
   const [selectedCoin, setSelectedCoin] = useState("BTC");
   const [selectedNetwork, setSelectedNetwork] = useState("ERC20");
   const [amount, setAmount] = useState("");
   const [loading, setLoading] = useState(false);
+  const tr = (key: string) => t(key, lang);
 
   const coins = ["BTC", "ETH", "USDT", "SOL"];
   const networks = ["BTC", "ERC20", "TRC20", "SOL"];
@@ -152,7 +172,7 @@ function DepositInlineForm({ onComplete }: { onComplete: () => void }) {
   const toast = useToast();
 
   const handleDeposit = async () => {
-    if (!amount || Number(amount) <= 0) return toast.addToast("Enter a valid amount", "warning");
+    if (!amount || Number(amount) <= 0) return toast.addToast(tr("enterValidAmount"), "warning");
     setLoading(true);
     try {
       await apiRequest("/transactions/deposit", {
@@ -164,10 +184,10 @@ function DepositInlineForm({ onComplete }: { onComplete: () => void }) {
           address: "wallet-deposit"
         })
       });
-      toast.addToast("Deposit successful!", "success");
+      toast.addToast(tr("depositSuccessful"), "success");
       onComplete();
     } catch (err: any) {
-      toast.addToast(err.message || "Deposit failed", "error");
+      toast.addToast(err.message || tr("depositFailed"), "error");
     } finally {
       setLoading(false);
     }
@@ -176,8 +196,8 @@ function DepositInlineForm({ onComplete }: { onComplete: () => void }) {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-3">
-        <button onClick={() => setDepositType("crypto")} className={`py-3 rounded-lg text-sm font-semibold border transition-all ${depositType === "crypto" ? "bg-[#252525] border-white/10" : "text-gray-500 border-white/5"}`}>Crypto</button>
-        <button onClick={() => setDepositType("fiat")} className={`py-3 rounded-lg text-sm font-semibold border transition-all ${depositType === "fiat" ? "bg-[#252525] border-white/10" : "text-gray-500 border-white/5"}`}>Fiat (USDT)</button>
+        <button onClick={() => setDepositType("crypto")} className={`py-3 rounded-lg text-sm font-semibold border transition-all ${depositType === "crypto" ? "bg-[#252525] border-white/10" : "text-gray-500 border-white/5"}`}>{tr("crypto")}</button>
+        <button onClick={() => setDepositType("fiat")} className={`py-3 rounded-lg text-sm font-semibold border transition-all ${depositType === "fiat" ? "bg-[#252525] border-white/10" : "text-gray-500 border-white/5"}`}>{tr("fiatUsdt")}</button>
       </div>
 
       {depositType === "crypto" && (
@@ -200,7 +220,7 @@ function DepositInlineForm({ onComplete }: { onComplete: () => void }) {
         type="number"
         value={amount}
         onChange={(e) => setAmount(e.target.value)}
-        placeholder={depositType === "crypto" ? `Amount in ${selectedCoin}` : "Amount in USD"}
+        placeholder={depositType === "crypto" ? `${tr("amountIn")} ${selectedCoin}` : tr("amountInUsd")}
         className="w-full bg-[#252525] border border-white/5 rounded-lg py-3 px-4 outline-none text-sm"
       />
 
@@ -213,7 +233,7 @@ function DepositInlineForm({ onComplete }: { onComplete: () => void }) {
       )}
 
       <button onClick={handleDeposit} disabled={loading} className="w-full bg-[#0055FF] hover:bg-blue-700 py-3 rounded-lg font-bold disabled:opacity-50 transition-all">
-        {loading ? "Processing..." : `Deposit ${depositType === "crypto" ? selectedCoin : "USDT"}`}
+        {loading ? tr("processing") : `${tr("deposit")} ${depositType === "crypto" ? selectedCoin : "USDT"}`}
       </button>
     </div>
   );
