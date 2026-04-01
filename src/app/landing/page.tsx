@@ -2,7 +2,6 @@ import Navbar from "@/components/landingpage/Navbar";
 import Hero from "@/components/landingpage/HeroSection";
 import Features from "@/components/landingpage/Features";
 import HowItWorks from "@/components/landingpage/HowItWorks";
-import FAQ from "@/components/landingpage/FAQSection";
 import Testimonials from "@/components/landingpage/Testemonials";
 import Footer from "@/components/landingpage/FooterSection";
 
@@ -17,7 +16,6 @@ export default function LandingPage() {
         <Features />
       </div>
       <HowItWorks />
-      <FAQ />
       <Testimonials />
       <Footer />
     </>
