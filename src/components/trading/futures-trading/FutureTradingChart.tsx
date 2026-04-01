@@ -99,9 +99,16 @@ export default React.memo(function FutureTradingChart({
 
   const fetchBackendData = async () => {
     try {
-      const res = await fetch('https://apexsim-backend.vercel.app/market/prices');
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/?$/, '') || 'http://localhost:5001';
+      const res = await fetch(`${baseUrl}/api/market/prices`);
+      if (!res.ok) {
+        throw new Error(`Market API failed with status ${res.status}`);
+      }
+
       const data = await res.json();
-      const baseSymbol = symbol.split('/')[0];
+      const normalizedSymbol = (symbol || '').toString();
+      const baseSymbol = normalizedSymbol.includes('/') ? normalizedSymbol.split('/')[0] : normalizedSymbol;
+      if (!baseSymbol) return;
       
       const exactMatch = data[baseSymbol] || data[baseSymbol.toUpperCase()] || data[baseSymbol.replace('^', '')] || data[`^${baseSymbol}`];
       if (exactMatch) {

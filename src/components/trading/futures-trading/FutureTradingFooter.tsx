@@ -4,14 +4,26 @@ import { FaCaretDown } from "react-icons/fa";
 import { apiRequest } from '@/lib/api';
 import { initializeSocket } from '@/lib/socket';
 import { APP_LANGUAGE_EVENT, AppLanguageCode, getAppLanguage, t } from '@/lib/i18n';
+import { useToast } from '@/components/ToastContext';
+
+interface FooterPositionRow {
+  _id?: string;
+  symbol?: string;
+  quantity?: number;
+  avgPrice?: number;
+  margin?: number;
+  totalCost?: number;
+}
 
 export default function FutureTradingFooter() {
+  const toast = useToast();
   const [activeTab, setActiveTab] = useState<"openOrders" | "ordersHistory" | "tradeHistory" | "positions" | "funds">("openOrders");
   const [orders, setOrders] = useState<any[]>([]);
   const [history, setHistory] = useState<any[]>([]);
   const [balances, setBalances] = useState<any[]>([]);
   const [positions, setPositions] = useState<any[]>([]);
   const [marketPrices, setMarketPrices] = useState<{[key: string]: number}>({});
+  const [closingPositionId, setClosingPositionId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [lang, setLang] = useState<AppLanguageCode>('Eng');
   const tr = (key: string) => t(key, lang);
@@ -56,6 +68,60 @@ export default function FutureTradingFooter() {
     }
   };
 
+  const fetchMarketPrices = async () => {
+    try {
+      const [cryptoData, stocksData, indicesData, forexData, commoditiesData] = await Promise.all([
+        apiRequest('/market/prices'),
+        apiRequest('/market/stocks'),
+        apiRequest('/market/indices'),
+        apiRequest('/market/forex'),
+        apiRequest('/market/commodities'),
+      ]);
+
+      const nextPrices: { [key: string]: number } = {};
+
+      const ingestPayload = (payload: Record<string, any> | null | undefined) => {
+        if (!payload || typeof payload !== 'object') return;
+
+        Object.entries(payload).forEach(([rawKey, details]) => {
+          if (!details || typeof details !== 'object') return;
+
+          const rawPrice =
+            details.usd ??
+            details.price ??
+            details.value ??
+            details.close ??
+            details.regularMarketPrice;
+
+          const price = Number(rawPrice);
+          if (!Number.isFinite(price) || price <= 0) return;
+
+          const key = (rawKey || '').toString().toUpperCase();
+          const symbol = (details.symbol || rawKey || '').toString().toUpperCase();
+          const base = symbol.includes('/') ? symbol.split('/')[0] : symbol;
+
+          [key, symbol, base, `${base}/USDT`]
+            .filter(Boolean)
+            .forEach((k) => {
+              nextPrices[k] = price;
+            });
+        });
+      };
+
+      ingestPayload(cryptoData);
+      ingestPayload(stocksData);
+      ingestPayload(indicesData);
+      ingestPayload(forexData);
+      ingestPayload(commoditiesData);
+
+      if (Object.keys(nextPrices).length > 0) {
+        setMarketPrices((prev) => ({ ...prev, ...nextPrices }));
+      }
+    } catch (err) {
+      console.error('Failed to fetch market prices:', err);
+    }
+  };
+
   useEffect(() => {
     const socket = initializeSocket();
     
@@ -64,12 +130,28 @@ export default function FutureTradingFooter() {
     const handleMarketUpdate = (data: any) => {
         if (!data) return;
         const newPrices: {[key: string]: number} = {};
-        Object.keys(data).forEach(coin => {
-            if (data[coin] && (data[coin].usd || data[coin].price || data[coin].value)) {
-                newPrices[`${coin}/USDT`] = (data[coin].usd || data[coin].price || data[coin].value);
-            }
+        Object.keys(data).forEach((coinKey) => {
+            const details = data[coinKey];
+            if (!details) return;
+
+            const rawPrice = details.usd ?? details.price ?? details.value ?? details.regularMarketPrice;
+            const price = Number(rawPrice);
+            if (!Number.isFinite(price) || price <= 0) return;
+
+            const normalizedCoinKey = (coinKey || '').toString().toUpperCase();
+            const symbolFromPayload = (details.symbol || coinKey || '').toString().toUpperCase();
+            const baseSymbol = symbolFromPayload.includes('/') ? symbolFromPayload.split('/')[0] : symbolFromPayload;
+
+            [normalizedCoinKey, symbolFromPayload, baseSymbol, `${baseSymbol}/USDT`]
+              .filter(Boolean)
+              .forEach((k) => {
+                newPrices[k] = price;
+              });
         });
-        setMarketPrices(prev => ({...prev, ...newPrices}));
+
+        if (Object.keys(newPrices).length > 0) {
+          setMarketPrices(prev => ({...prev, ...newPrices}));
+        }
     };
 
     const handleTradeUpdate = () => {
@@ -99,10 +181,71 @@ export default function FutureTradingFooter() {
 
   useEffect(() => {
     fetchData();
+    fetchMarketPrices();
     // Refresh every 10 seconds as a fallback
-    const interval = setInterval(fetchData, 10000);
+    const interval = setInterval(() => {
+      fetchData();
+      fetchMarketPrices();
+    }, 10000);
+
     return () => clearInterval(interval);
   }, []);
+
+  const resolveMarkPrice = (symbol: string, fallback?: number) => {
+    const normalized = (symbol || '').toString().toUpperCase();
+    const base = normalized.includes('/') ? normalized.split('/')[0] : normalized;
+    const resolved =
+      marketPrices[normalized] ??
+      marketPrices[base] ??
+      marketPrices[`${base}/USDT`] ??
+      fallback;
+
+    const numeric = Number(resolved);
+    return Number.isFinite(numeric) ? numeric : undefined;
+  };
+
+  const handleClosePosition = async (position: FooterPositionRow) => {
+    const symbol = (position?.symbol || '').toString();
+    const quantity = Math.abs(Number(position?.quantity || 0));
+
+    if (!symbol || quantity <= 0) {
+      toast.addToast('Invalid position data', 'error');
+      return;
+    }
+
+    const closePrice = resolveMarkPrice(symbol, Number(position?.avgPrice));
+    if (!closePrice || closePrice <= 0) {
+      toast.addToast('Live market price not available for this position', 'error');
+      return;
+    }
+
+    const closeType: 'buy' | 'sell' = Number(position?.quantity || 0) > 0 ? 'sell' : 'buy';
+    const positionId = (position?._id || symbol).toString();
+
+    setClosingPositionId(positionId);
+    try {
+      await apiRequest('/trading/order', {
+        method: 'POST',
+        body: ({
+          symbol,
+          type: closeType,
+          marketType: 'futures',
+          price: closePrice,
+          amount: quantity,
+          orderType: 'market',
+          action: 'close',
+        } as unknown as BodyInit),
+      });
+
+      toast.addToast(`${symbol} position closed`, 'success');
+      fetchData();
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to close position';
+      toast.addToast(message, 'error');
+    } finally {
+      setClosingPositionId(null);
+    }
+  };
 
   const getActiveData = () => {
     if (activeTab === "positions") return positions;
@@ -137,7 +280,7 @@ export default function FutureTradingFooter() {
 
       <div className="overflow-x-auto no-scrollbar cursor-pointer">
         <div className="min-w-250 w-full">
-          <div className="grid grid-cols-10 px-4 py-2 items-center">
+          <div className={`grid ${activeTab === "positions" ? 'grid-cols-8' : 'grid-cols-10'} px-4 py-2 items-center`}>
             {activeTab === "funds" ? (
               <>
                 <div className="text-gray-500 text-[15px] font-semibold py-3">Asset</div>
@@ -174,7 +317,7 @@ export default function FutureTradingFooter() {
           <div className="px-4">
             {data.length > 0 ? (
               data.map((item: any, idx: number) => (
-                <div key={item._id || idx} className="grid grid-cols-10 border-b border-white/5 py-3 text-[13px] text-gray-300 items-center">
+                <div key={item._id || idx} className={`grid ${activeTab === "positions" ? 'grid-cols-8' : 'grid-cols-10'} border-b border-white/5 py-3 text-[13px] text-gray-300 items-center`}>
                   {activeTab === "funds" ? (
                     <>
                       <div className="font-medium text-white">{item.asset}</div>
@@ -183,33 +326,41 @@ export default function FutureTradingFooter() {
                       <div className="col-span-7"></div>
                     </>
                   ) : activeTab === "positions" ? (
-                    <>
-                      <div className="text-white font-bold">{item.symbol} <span className={item.quantity > 0 ? 'text-green-500 text-[10px]' : 'text-red-500 text-[10px]'}>{item.quantity > 0 ? 'LONG' : 'SHORT'}</span></div>
-                      <div>{Math.abs(item.quantity).toFixed(4)}</div>
-                      <div>{item.avgPrice?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 })}</div>
-                      <div>{marketPrices[item.symbol] ? marketPrices[item.symbol].toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 }) : item.avgPrice?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 })}</div>
-                      <div className="text-orange-400">--</div>
-                      <div>{item.margin ? item.margin.toFixed(2) : (item.totalCost / 5).toFixed(2)} USDT</div>
-                      {(() => {
-                          const currentPx = marketPrices[item.symbol] || item.avgPrice;
-                          const size = Math.abs(item.quantity);
-                          const pnl = item.quantity > 0 
-                              ? (currentPx - item.avgPrice) * size
-                              : (item.avgPrice - currentPx) * size;
-                          const margin = item.margin || (item.totalCost / 5);
-                          const roe = margin > 0 ? (pnl / margin) * 100 : 0;
-                          return (
-                            <>
-                              <div className={pnl >= 0 ? "text-green-500" : "text-red-500"}>{pnl > 0 ? '+' : ''}{pnl.toFixed(2)} USDT</div>
-                              <div className={roe >= 0 ? "text-green-500" : "text-red-500"}>{roe > 0 ? '+' : ''}{roe.toFixed(2)}%</div>
-                            </>
-                          );
-                      })()}
-                      <div className="flex gap-2">
-                        {/* We could add logic to link back to Close tab but that requires setting state in parent. For now, it indicates the symbol. */}
-                        <button className="text-blue-500 hover:underline">{tr('closeLabel')}</button>
-                      </div>
-                    </>
+                    (() => {
+                      const symbol = (item.symbol || '').toString();
+                      const quantity = Number(item.quantity || 0);
+                      const size = Math.abs(quantity);
+                      const entryPrice = Number(item.avgPrice || 0);
+                      const markPrice = resolveMarkPrice(symbol, entryPrice) ?? entryPrice;
+                      const margin = Number(item.margin || (item.totalCost / 5) || 0);
+                      const pnl = quantity > 0
+                        ? (markPrice - entryPrice) * size
+                        : (entryPrice - markPrice) * size;
+                      const roe = margin > 0 ? (pnl / margin) * 100 : 0;
+                      const positionId = (item._id || symbol).toString();
+                      const isClosing = closingPositionId === positionId;
+
+                      return (
+                        <>
+                          <div className="text-white font-bold">{symbol} <span className={quantity > 0 ? 'text-green-500 text-[10px]' : 'text-red-500 text-[10px]'}>{quantity > 0 ? 'LONG' : 'SHORT'}</span></div>
+                          <div>{size.toFixed(4)}</div>
+                          <div>{entryPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 })}</div>
+                          <div>{markPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 })}</div>
+                          <div className={pnl >= 0 ? "text-green-500" : "text-red-500"}>{pnl > 0 ? '+' : ''}{pnl.toFixed(2)} USDT</div>
+                          <div>{margin.toFixed(2)} USDT</div>
+                          <div className={roe >= 0 ? "text-green-500" : "text-red-500"}>{roe > 0 ? '+' : ''}{roe.toFixed(2)}%</div>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleClosePosition(item)}
+                              disabled={isClosing}
+                              className="text-blue-500 hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              {isClosing ? tr('closing') : tr('closeLabel')}
+                            </button>
+                          </div>
+                        </>
+                      );
+                    })()
                   ) : (
                     <>
                       <div className="text-gray-500">{new Date(item.createdAt).toLocaleString()}</div>
